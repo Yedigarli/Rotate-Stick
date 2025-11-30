@@ -1,8 +1,10 @@
 using UnityEngine;
 
-public class StickAroundRotate : MonoBehaviour
+public class GameManager : MonoBehaviour
 {
-    public float speed = 50f;
+    public static GameManager Instance;
+    public float FirstSpeed = 60f;
+    public float currentSpeed;
     public float raycastDistance = 5f;
     public LayerMask detectableLayers;
     public GameObject target;
@@ -13,6 +15,8 @@ public class StickAroundRotate : MonoBehaviour
 
     private void Awake()
     {
+        currentSpeed = FirstSpeed;
+        Instance = this;
         speedDirection = Vector3.forward;
         Invoke(nameof(SpawnBall), 0f);
     }
@@ -35,14 +39,18 @@ public class StickAroundRotate : MonoBehaviour
                 // Access information about the hit, e.g., hit.point, hit.normal
                 Destroy(hit.collider.gameObject);
                 speedDirection = speedDirection * -1;
-                speed += 2.5f;
+                currentSpeed += 4.5f;
                 CancelInvoke();
                 Invoke(nameof(SpawnBall), 0f);
                 StartCoroutine(LevelManager.Instance.ScoreChanger());
             }
         }
 
-        transform.RotateAround(target.transform.position, speedDirection, speed * Time.deltaTime);
+        transform.RotateAround(
+            target.transform.position,
+            speedDirection,
+            currentSpeed * Time.deltaTime
+        );
     }
 
     void SpawnBall()

@@ -26,6 +26,8 @@ public class LevelManager : MonoBehaviour
         {
             yield return new WaitForSeconds(0.1f);
             level++;
+            GameManager.Instance.currentSpeed = GameManager.Instance.FirstSpeed;
+            GameManager.Instance.FirstSpeed += 5.5f;
             score = level;
         }
         ScoreText.text = score.ToString();
