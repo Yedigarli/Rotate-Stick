@@ -1,4 +1,6 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class GameManager : MonoBehaviour
 {
@@ -9,12 +11,17 @@ public class GameManager : MonoBehaviour
     public LayerMask detectableLayers;
     public GameObject target;
     public GameObject ball;
+    public Color newBackgroundColor = new Color(255 / 255f, 0 / 255f, 0 / 255f, 255f);
+    public Color firstBackgroundColor = new Color(50 / 255f, 160 / 255f, 201 / 255f, 255f);
+
 
     private Vector3 speedDirection;
     public float radius = 1.2f;
+    public GameObject bg;
 
     private void Awake()
     {
+        bg.GetComponent<SpriteRenderer>().color = firstBackgroundColor;
         currentSpeed = FirstSpeed;
         Instance = this;
         speedDirection = Vector3.forward;
@@ -43,6 +50,12 @@ public class GameManager : MonoBehaviour
                 CancelInvoke();
                 Invoke(nameof(SpawnBall), 0f);
                 StartCoroutine(LevelManager.Instance.ScoreChanger());
+            }
+            else
+            {
+                bg.GetComponent<SpriteRenderer>().color = newBackgroundColor;
+
+                SceneManager.LoadScene("Game");
             }
         }
 
