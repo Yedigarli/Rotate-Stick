@@ -9,14 +9,15 @@ public class LevelManager : MonoBehaviour
     public TMP_Text LevelText;
 
     private int score;
-    private int level = 1;
+    private int level;
 
     private void Awake()
     {
         Instance = this;
+        level = PlayerPrefs.GetInt("level", 1);
         score = level;
-        ScoreText.text = score.ToString();
-        LevelText.text = "Level: " + level.ToString();
+
+        UpdateScoreUI();
     }
 
     public IEnumerator ScoreChanger()
@@ -28,9 +29,24 @@ public class LevelManager : MonoBehaviour
             level++;
             GameManager.Instance.currentSpeed = GameManager.Instance.FirstSpeed;
             GameManager.Instance.FirstSpeed += 5.5f;
+            float speed = GameManager.Instance.FirstSpeed;
+            PlayerPrefs.SetFloat("firstspeed", speed);
             score = level;
+            PlayerPrefs.SetInt("level", level);
+            PlayerPrefs.Save();
         }
-        ScoreText.text = score.ToString();
-        LevelText.text = "Level: " + level.ToString();
+        UpdateScoreUI();
+    }
+
+    void UpdateScoreUI()
+    {
+        if (ScoreText != null)
+        {
+            ScoreText.text = score.ToString();
+        }
+        if (LevelText.text != null)
+        {
+            LevelText.text = "Level: " + level.ToString();
+        }
     }
 }

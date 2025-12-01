@@ -22,6 +22,7 @@ public class GameManager : MonoBehaviour
     private void Awake()
     {
         bg.GetComponent<SpriteRenderer>().color = firstBackgroundColor;
+        FirstSpeed = PlayerPrefs.GetFloat("firstspeed", 90);
         currentSpeed = FirstSpeed;
         Instance = this;
         speedDirection = Vector3.forward;
