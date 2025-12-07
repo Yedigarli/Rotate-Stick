@@ -14,7 +14,6 @@ public class GameManager : MonoBehaviour
     public Color newBackgroundColor = new Color(255 / 255f, 0 / 255f, 0 / 255f, 255f);
     public Color firstBackgroundColor = new Color(50 / 255f, 160 / 255f, 201 / 255f, 255f);
 
-
     private Vector3 speedDirection;
     public float radius = 1.2f;
     public GameObject bg;

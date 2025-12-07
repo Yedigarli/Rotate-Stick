@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2666816779768750784}
   - component: {fileID: 866991986431341271}
-  - component: {fileID: 143559086310811347}
+  - component: {fileID: 6977087437123746767}
   m_Layer: 6
   m_Name: ball
   m_TagString: Untagged
@@ -76,7 +76,7 @@ SpriteRenderer:
   m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 2
+  m_SortingOrder: 3
   m_Sprite: {fileID: -2413806693520163455, guid: a86470a33a6bf42c4b3595704624658b, type: 3}
   m_Color: {r: 0.7682676, g: 0.8037735, b: 0.156205, a: 1}
   m_FlipX: 0
@@ -88,7 +88,7 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
---- !u!58 &143559086310811347
+--- !u!58 &6977087437123746767
 CircleCollider2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
