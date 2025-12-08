@@ -1,3 +1,4 @@
+using MaskTransitions;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -22,7 +23,10 @@ public class MainMenuManager : MonoBehaviour
     {
         speedDirection = Vector3.forward;
         Invoke(nameof(SpawnBall), 0f);
-        PLayButton.onClick.AddListener(playButton);
+        PLayButton.onClick.AddListener(() =>
+        {
+            TransitionManager.Instance.LoadLevel("Game");
+        });
         int level = PlayerPrefs.GetInt("level", 1);
         if (levelText != null)
             levelText.text = "Level: " + level.ToString();
@@ -55,10 +59,5 @@ public class MainMenuManager : MonoBehaviour
         );
 
         Instantiate(ball, spawnPos, Quaternion.identity);
-    }
-
-    void playButton()
-    {
-        SceneManager.LoadScene("Game");
     }
 }

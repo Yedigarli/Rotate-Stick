@@ -1,3 +1,5 @@
+using System.Collections;
+using MaskTransitions;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -53,9 +55,7 @@ public class GameManager : MonoBehaviour
             }
             else
             {
-                bg.GetComponent<SpriteRenderer>().color = newBackgroundColor;
-
-                SceneManager.LoadScene("Game");
+                StartCoroutine(GameOver());
             }
         }
 
@@ -83,5 +83,14 @@ public class GameManager : MonoBehaviour
     {
         Debug.Log("Collision detected with: " + collision.gameObject.name);
         // Access information about the collision, e.g., collision.contacts, collision.relativeVelocity
+    }
+
+    IEnumerator GameOver()
+    {
+        bg.GetComponent<SpriteRenderer>().color = newBackgroundColor;
+
+        yield return new WaitForSeconds(0.1f);
+
+        TransitionManager.Instance.LoadLevel("Game");
     }
 }
