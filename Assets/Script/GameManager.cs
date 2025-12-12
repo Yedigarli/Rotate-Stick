@@ -6,6 +6,8 @@ using UnityEngine.UI;
 
 public class GameManager : MonoBehaviour
 {
+    public AudioSource bgmusic;
+    public AudioSource loseSound;
     public static GameManager Instance;
     public float FirstSpeed = 60f;
     public float currentSpeed;
@@ -48,7 +50,7 @@ public class GameManager : MonoBehaviour
                 // Access information about the hit, e.g., hit.point, hit.normal
                 Destroy(hit.collider.gameObject);
                 speedDirection = speedDirection * -1;
-                currentSpeed += 4.5f;
+                currentSpeed += 3.5f;
                 CancelInvoke();
                 Invoke(nameof(SpawnBall), 0f);
                 StartCoroutine(LevelManager.Instance.ScoreChanger());
@@ -88,8 +90,12 @@ public class GameManager : MonoBehaviour
     IEnumerator GameOver()
     {
         bg.GetComponent<SpriteRenderer>().color = newBackgroundColor;
+        CameraShake.Instance.ShakeCamera(1.1f, 0.5f);
+        bgmusic.Stop();
 
-        yield return new WaitForSeconds(0.1f);
+        loseSound.Play();
+
+        yield return new WaitForSeconds(0.5f);
 
         TransitionManager.Instance.LoadLevel("Game");
     }

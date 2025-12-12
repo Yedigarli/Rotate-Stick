@@ -28,7 +28,7 @@ public class LevelManager : MonoBehaviour
             yield return new WaitForSeconds(0.1f);
             level++;
             GameManager.Instance.currentSpeed = GameManager.Instance.FirstSpeed;
-            GameManager.Instance.FirstSpeed += 5.5f;
+            GameManager.Instance.FirstSpeed += 4.5f;
             float speed = GameManager.Instance.FirstSpeed;
             PlayerPrefs.SetFloat("firstspeed", speed);
             score = level;
