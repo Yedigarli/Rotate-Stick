@@ -1,13 +1,10 @@
 using System.Collections;
 using MaskTransitions;
+using Unity.VisualScripting;
 using UnityEngine;
-using UnityEngine.SceneManagement;
-using UnityEngine.UI;
 
 public class GameManager : MonoBehaviour
 {
-    public AudioSource bgmusic;
-    public AudioSource loseSound;
     public static GameManager Instance;
     public float FirstSpeed = 60f;
     public float currentSpeed;
@@ -15,26 +12,34 @@ public class GameManager : MonoBehaviour
     public LayerMask detectableLayers;
     public GameObject target;
     public GameObject ball;
-    public Color newBackgroundColor = new Color(255 / 255f, 0 / 255f, 0 / 255f, 255f);
-    public Color firstBackgroundColor = new Color(50 / 255f, 160 / 255f, 201 / 255f, 255f);
+    public Color newBackgroundColor = new Color(0.91f, 0.35f, 0.40f, 1f); // soft red
+    public Color firstBackgroundColor = new Color(50 / 255f, 160 / 255f, 201 / 255f, 1f);
 
+    private bool hasScoredOnce = false;
     private Vector3 speedDirection;
     public float radius = 1.2f;
     public GameObject bg;
 
     private void Awake()
     {
+        Instance = this;
+
         bg.GetComponent<SpriteRenderer>().color = firstBackgroundColor;
+
         FirstSpeed = PlayerPrefs.GetFloat("firstspeed", 90);
         currentSpeed = FirstSpeed;
-        Instance = this;
         speedDirection = Vector3.forward;
-        Invoke(nameof(SpawnBall), 0f);
+        hasScoredOnce = false;
+
+        Invoke(nameof(SpawnBall), 0.1f);
+
+        // Music
+        if (MusicManager.Instance != null)
+            MusicManager.Instance.PlayBackgroundMusic();
     }
 
-    void Update()
+    private void Update()
     {
-        // Example: Cast a ray forward from the object's position
         RaycastHit2D hit = Physics2D.Raycast(
             transform.position,
             transform.right,
@@ -46,13 +51,15 @@ public class GameManager : MonoBehaviour
         {
             if (hit.collider != null)
             {
-                //Debug.Log("Raycast hit: " + hit.collider.gameObject.name);
-                // Access information about the hit, e.g., hit.point, hit.normal
                 Destroy(hit.collider.gameObject);
-                speedDirection = speedDirection * -1;
+                hasScoredOnce = true;
+
+                speedDirection *= -1;
                 currentSpeed += 3.5f;
+
                 CancelInvoke();
                 Invoke(nameof(SpawnBall), 0f);
+
                 StartCoroutine(LevelManager.Instance.ScoreChanger());
             }
             else
@@ -61,15 +68,19 @@ public class GameManager : MonoBehaviour
             }
         }
 
-        transform.RotateAround(
-            target.transform.position,
-            speedDirection,
-            currentSpeed * Time.deltaTime
-        );
+        if (target != null)
+            transform.RotateAround(
+                target.transform.position,
+                speedDirection,
+                currentSpeed * Time.deltaTime
+            );
     }
 
     void SpawnBall()
     {
+        if (target == null || ball == null)
+            return;
+
         Vector2 pos2D = Random.insideUnitCircle.normalized * radius;
 
         Vector3 spawnPos = new Vector3(
@@ -81,22 +92,48 @@ public class GameManager : MonoBehaviour
         Instantiate(ball, spawnPos, Quaternion.identity);
     }
 
-    void OnCollisionEnter2D(Collision2D collision)
-    {
-        Debug.Log("Collision detected with: " + collision.gameObject.name);
-        // Access information about the collision, e.g., collision.contacts, collision.relativeVelocity
-    }
-
     IEnumerator GameOver()
     {
         bg.GetComponent<SpriteRenderer>().color = newBackgroundColor;
-        CameraShake.Instance.ShakeCamera(1.1f, 0.5f);
-        bgmusic.Stop();
 
-        loseSound.Play();
+        CameraShake.Instance.ShakeCamera(1.1f, 1.2f);
 
-        yield return new WaitForSeconds(0.5f);
+        if (MusicManager.Instance != null)
+        {
+            MusicManager.Instance.StopBackgroundMusic();
+            MusicManager.Instance.PlayLoseSoundSnippet(1.2f);
+        }
 
-        TransitionManager.Instance.LoadLevel("Game");
+        yield return new WaitForSeconds(1.2f);
+
+        if (!hasScoredOnce)
+        {
+            // İlk hit yoxdursa → soft reset
+            ResetGameSoft();
+        }
+        else
+        {
+            // Hit olub → scene reload
+            TransitionManager.Instance.LoadLevel("Game");
+        }
+    }
+
+    void ResetGameSoft()
+    {
+        bg.GetComponent<SpriteRenderer>().color = firstBackgroundColor;
+
+        currentSpeed = FirstSpeed;
+        speedDirection = Vector3.forward;
+        hasScoredOnce = false;
+
+        // Bütün topları sil
+        GameObject[] balls = GameObject.FindGameObjectsWithTag("Ball");
+        foreach (GameObject b in balls)
+            Destroy(b);
+
+        Invoke(nameof(SpawnBall), 0.1f);
+
+        if (MusicManager.Instance != null)
+            MusicManager.Instance.PlayBackgroundMusic();
     }
 }

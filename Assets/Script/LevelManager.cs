@@ -8,15 +8,14 @@ public class LevelManager : MonoBehaviour
     public TMP_Text ScoreText;
     public TMP_Text LevelText;
 
-    private int score;
-    private int level;
+    public int score;
+    public int level;
 
     private void Awake()
     {
         Instance = this;
         level = PlayerPrefs.GetInt("level", 1);
         score = level;
-
         UpdateScoreUI();
     }
 
@@ -29,8 +28,7 @@ public class LevelManager : MonoBehaviour
             level++;
             GameManager.Instance.currentSpeed = GameManager.Instance.FirstSpeed;
             GameManager.Instance.FirstSpeed += 4.5f;
-            float speed = GameManager.Instance.FirstSpeed;
-            PlayerPrefs.SetFloat("firstspeed", speed);
+            PlayerPrefs.SetFloat("firstspeed", GameManager.Instance.FirstSpeed);
             score = level;
             PlayerPrefs.SetInt("level", level);
             PlayerPrefs.Save();
@@ -41,12 +39,8 @@ public class LevelManager : MonoBehaviour
     void UpdateScoreUI()
     {
         if (ScoreText != null)
-        {
             ScoreText.text = score.ToString();
-        }
-        if (LevelText.text != null)
-        {
+        if (LevelText != null)
             LevelText.text = "Level: " + level.ToString();
-        }
     }
 }
