@@ -1,24 +1,38 @@
 using System.Collections;
+using System.Collections.Generic;
 using MaskTransitions;
-using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
+using UnityEngine.UIElements;
+using Button = UnityEngine.UI.Button;
 
 public class GameManager : MonoBehaviour
 {
+    public Canvas settingsCanvas;
     public static GameManager Instance;
+
+    public Button settingsButton;
+    public Button closeSettingsButton;
+
     public float FirstSpeed = 60f;
     public float currentSpeed;
     public float raycastDistance = 5f;
     public LayerMask detectableLayers;
+
     public GameObject target;
     public GameObject ball;
-    public Color newBackgroundColor = new Color(0.91f, 0.35f, 0.40f, 1f); // soft red
+    public GameObject bg;
+
+    public Color newBackgroundColor = new Color(0.91f, 0.35f, 0.40f, 1f);
     public Color firstBackgroundColor = new Color(50 / 255f, 160 / 255f, 201 / 255f, 1f);
+
+    public bool isSettingsOpen = false;
+    public bool isSettingbtnPressed = false;
 
     private bool hasScoredOnce = false;
     private Vector3 speedDirection;
     public float radius = 1.2f;
-    public GameObject bg;
 
     private void Awake()
     {
@@ -29,17 +43,23 @@ public class GameManager : MonoBehaviour
         FirstSpeed = PlayerPrefs.GetFloat("firstspeed", 90);
         currentSpeed = FirstSpeed;
         speedDirection = Vector3.forward;
-        hasScoredOnce = false;
 
         Invoke(nameof(SpawnBall), 0.1f);
 
-        // Music
         if (MusicManager.Instance != null)
             MusicManager.Instance.PlayBackgroundMusic();
+
+        settingsButton.onClick.AddListener(() => SettingsManager.Instance.OpenSettings());
+
+        closeSettingsButton.onClick.AddListener(() => SettingsManager.Instance.CloseSettings());
     }
 
     private void Update()
     {
+        // 🔒 SETTINGS AÇIQDIRSA → OYUN INPUT-U TAM BLOK
+        if (isSettingsOpen)
+            return;
+
         RaycastHit2D hit = Physics2D.Raycast(
             transform.position,
             transform.right,
@@ -69,18 +89,17 @@ public class GameManager : MonoBehaviour
         }
 
         if (target != null)
+        {
             transform.RotateAround(
                 target.transform.position,
                 speedDirection,
                 currentSpeed * Time.deltaTime
             );
+        }
     }
 
     void SpawnBall()
     {
-        if (target == null || ball == null)
-            return;
-
         Vector2 pos2D = Random.insideUnitCircle.normalized * radius;
 
         Vector3 spawnPos = new Vector3(
@@ -96,24 +115,23 @@ public class GameManager : MonoBehaviour
     {
         bg.GetComponent<SpriteRenderer>().color = newBackgroundColor;
 
-        CameraShake.Instance.ShakeCamera(1.1f, 1.2f);
-
-        if (MusicManager.Instance != null)
-        {
-            MusicManager.Instance.StopBackgroundMusic();
-            MusicManager.Instance.PlayLoseSoundSnippet(1.2f);
-        }
-
-        yield return new WaitForSeconds(1.2f);
+        VibrationManager.SoftVibration();
 
         if (!hasScoredOnce)
         {
-            // İlk hit yoxdursa → soft reset
+            CameraShake.Instance.ShakeCamera(1.1f, 0.3f);
+            yield return new WaitForSeconds(0.3f);
             ResetGameSoft();
         }
         else
         {
-            // Hit olub → scene reload
+            CameraShake.Instance.ShakeCamera(1.1f, 1.2f);
+            if (MusicManager.Instance != null)
+            {
+                MusicManager.Instance.StopBackgroundMusic();
+                MusicManager.Instance.PlayLoseSoundSnippet(1.2f);
+            }
+            yield return new WaitForSeconds(1.2f);
             TransitionManager.Instance.LoadLevel("Game");
         }
     }
@@ -126,14 +144,35 @@ public class GameManager : MonoBehaviour
         speedDirection = Vector3.forward;
         hasScoredOnce = false;
 
-        // Bütün topları sil
-        GameObject[] balls = GameObject.FindGameObjectsWithTag("Ball");
-        foreach (GameObject b in balls)
+        foreach (GameObject b in GameObject.FindGameObjectsWithTag("Ball"))
             Destroy(b);
 
         Invoke(nameof(SpawnBall), 0.1f);
+    }
 
-        if (MusicManager.Instance != null)
-            MusicManager.Instance.PlayBackgroundMusic();
+    public static class VibrationManager
+    {
+        public static void SoftVibration()
+        {
+#if UNITY_ANDROID && !UNITY_EDITOR
+            using (
+                AndroidJavaClass unityPlayer = new AndroidJavaClass(
+                    "com.unity3d.player.UnityPlayer"
+                )
+            )
+            {
+                AndroidJavaObject activity = unityPlayer.GetStatic<AndroidJavaObject>(
+                    "currentActivity"
+                );
+                AndroidJavaObject vibrator = activity.Call<AndroidJavaObject>(
+                    "getSystemService",
+                    "vibrator"
+                );
+
+                if (vibrator != null)
+                    vibrator.Call("vibrate", 80L); // 🔑 80 ms (ideal)
+            }
+#endif
+        }
     }
 }
