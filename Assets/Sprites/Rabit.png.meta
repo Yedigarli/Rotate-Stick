@@ -1,22 +1,10 @@
 fileFormatVersion: 2
-guid: 5d3df1e61bf1a46449df19bede832a9e
+guid: 98eddd275cf0d0844ba8dd5edb0d2e42
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 2204915073140548520
-    second: Bunny-Rabbit-Pink-Pieces-598x1536 (1)_0
-  - first:
-      213: -4423390299858343398
-    second: Bunny-Rabbit-Pink-Pieces-598x1536 (1)_1
-  - first:
-      213: 8886339713118276237
-    second: Bunny-Rabbit-Pink-Pieces-598x1536 (1)_2
-  - first:
-      213: 6272441657582017553
-    second: Bunny-Rabbit-Pink-Pieces-598x1536 (1)_3
-  - first:
-      213: 7538612069609458230
-    second: Bunny-Rabbit-Pink-Pieces-598x1536 (1)_4
+      213: 114185655640970728
+    second: Untitled (2)_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -138,13 +126,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Bunny-Rabbit-Pink-Pieces-598x1536 (1)_0
+      name: Untitled (2)_0
       rect:
         serializedVersion: 2
-        x: 55
-        y: 717
-        width: 134
-        height: 516
+        x: 0
+        y: 0
+        width: 369
+        height: 478
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -153,96 +141,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 8a3627ea39e699e10800000000000000
-      internalID: 2204915073140548520
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Bunny-Rabbit-Pink-Pieces-598x1536 (1)_1
-      rect:
-        serializedVersion: 2
-        x: 245
-        y: 724
-        width: 134
-        height: 516
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: a1ae80a55f5fc92c0800000000000000
-      internalID: -4423390299858343398
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Bunny-Rabbit-Pink-Pieces-598x1536 (1)_2
-      rect:
-        serializedVersion: 2
-        x: 55
-        y: 425
-        width: 345
-        height: 295
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: d8a8cd123ee925b70800000000000000
-      internalID: 8886339713118276237
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Bunny-Rabbit-Pink-Pieces-598x1536 (1)_3
-      rect:
-        serializedVersion: 2
-        x: 24
-        y: 37
-        width: 225
-        height: 370
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 11cd98a64703c0750800000000000000
-      internalID: 6272441657582017553
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Bunny-Rabbit-Pink-Pieces-598x1536 (1)_4
-      rect:
-        serializedVersion: 2
-        x: 261
-        y: 37
-        width: 225
-        height: 370
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 63a4b8c6cb78e9860800000000000000
-      internalID: 7538612069609458230
+      spriteID: 8e5dce2bf3ba59100800000000000000
+      internalID: 114185655640970728
       vertices: []
       indices: 
       edges: []
@@ -261,11 +161,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      Bunny-Rabbit-Pink-Pieces-598x1536 (1)_0: 2204915073140548520
-      Bunny-Rabbit-Pink-Pieces-598x1536 (1)_1: -4423390299858343398
-      Bunny-Rabbit-Pink-Pieces-598x1536 (1)_2: 8886339713118276237
-      Bunny-Rabbit-Pink-Pieces-598x1536 (1)_3: 6272441657582017553
-      Bunny-Rabbit-Pink-Pieces-598x1536 (1)_4: 7538612069609458230
+      Untitled (2)_0: 114185655640970728
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
