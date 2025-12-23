@@ -1,10 +1,12 @@
-using System.Collections;
+using DG.Tweening;
 using UnityEngine;
 
 public class LoseWiggle : MonoBehaviour
 {
     public static LoseWiggle Instance;
     public Transform skinVisual;
+
+    Tween wiggleTween;
 
     public void Awake()
     {
@@ -13,36 +15,23 @@ public class LoseWiggle : MonoBehaviour
 
     public void PlayLoseAnimation()
     {
-        StopAllCoroutines();
-        StartCoroutine(WiggleRoutine());
-    }
+        // Əvvəlki animasiyanı dayandır
+        if (wiggleTween != null && wiggleTween.IsActive())
+            wiggleTween.Kill();
 
-    IEnumerator WiggleRoutine()
-    {
-        Vector3 startPos = skinVisual.localPosition;
-        Quaternion startRot = skinVisual.localRotation;
+        skinVisual.localRotation = Quaternion.identity;
 
-        float duration = 0.45f;
-        float time = 0f;
-
-        while (time < duration)
-        {
-            time += Time.deltaTime;
-
-            float t = time / duration;
-            float wave = Mathf.Sin(t * Mathf.PI * 4); // sağ-sol dalğa
-
-            float yOffset = wave * 0.08f;
-            float rot = wave * 8f;
-
-            skinVisual.localPosition = startPos + new Vector3(0, yOffset, 0);
-            skinVisual.localRotation = Quaternion.Euler(0, 0, rot);
-
-            yield return null;
-        }
-
-        // Reset
-        skinVisual.localPosition = startPos;
-        skinVisual.localRotation = startRot;
+        wiggleTween = skinVisual
+            .DOLocalRotate(
+                new Vector3(0, 0, 12f), // sağa sola tilt
+                0.12f,
+                RotateMode.Fast
+            )
+            .SetLoops(6, LoopType.Yoyo) // sağ-sol-sağ-sol
+            .SetEase(Ease.InOutSine)
+            .OnComplete(() =>
+            {
+                skinVisual.localRotation = Quaternion.identity;
+            });
     }
 }

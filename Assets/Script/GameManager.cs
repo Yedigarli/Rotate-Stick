@@ -113,8 +113,7 @@ public class GameManager : MonoBehaviour
 
     IEnumerator GameOver()
     {
-        VibrationManager.SoftVibration();
-
+        Handheld.Vibrate();
         if (!hasScoredOnce)
         {
             CameraShake.Instance.ShakeCamera(1.1f, 0.3f);
@@ -148,31 +147,5 @@ public class GameManager : MonoBehaviour
             Destroy(b);
 
         Invoke(nameof(SpawnBall), 0.1f);
-    }
-
-    public static class VibrationManager
-    {
-        public static void SoftVibration()
-        {
-#if UNITY_ANDROID && !UNITY_EDITOR
-            using (
-                AndroidJavaClass unityPlayer = new AndroidJavaClass(
-                    "com.unity3d.player.UnityPlayer"
-                )
-            )
-            {
-                AndroidJavaObject activity = unityPlayer.GetStatic<AndroidJavaObject>(
-                    "currentActivity"
-                );
-                AndroidJavaObject vibrator = activity.Call<AndroidJavaObject>(
-                    "getSystemService",
-                    "vibrator"
-                );
-
-                if (vibrator != null)
-                    vibrator.Call("vibrate", 80L); // 🔑 80 ms (ideal)
-            }
-#endif
-        }
     }
 }
