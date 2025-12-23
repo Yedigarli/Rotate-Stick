@@ -24,8 +24,8 @@ public class GameManager : MonoBehaviour
     public GameObject ball;
     public GameObject bg;
 
-    public Color newBackgroundColor = new Color(0.91f, 0.35f, 0.40f, 1f);
-    public Color firstBackgroundColor = new Color(50 / 255f, 160 / 255f, 201 / 255f, 1f);
+    //public Color newBackgroundColor = new Color(0.91f, 0.35f, 0.40f, 1f);
+    //public Color firstBackgroundColor = new Color(50 / 255f, 160 / 255f, 201 / 255f, 1f);
 
     public bool isSettingsOpen = false;
     public bool isSettingbtnPressed = false;
@@ -38,7 +38,7 @@ public class GameManager : MonoBehaviour
     {
         Instance = this;
 
-        bg.GetComponent<SpriteRenderer>().color = firstBackgroundColor;
+        //bg.GetComponent<SpriteRenderer>().color = firstBackgroundColor;
 
         FirstSpeed = PlayerPrefs.GetFloat("firstspeed", 90);
         currentSpeed = FirstSpeed;
@@ -113,32 +113,32 @@ public class GameManager : MonoBehaviour
 
     IEnumerator GameOver()
     {
-        bg.GetComponent<SpriteRenderer>().color = newBackgroundColor;
-
         VibrationManager.SoftVibration();
 
         if (!hasScoredOnce)
         {
             CameraShake.Instance.ShakeCamera(1.1f, 0.3f);
+            LoseWiggle.Instance.PlayLoseAnimation();
             yield return new WaitForSeconds(0.3f);
             ResetGameSoft();
         }
         else
         {
-            CameraShake.Instance.ShakeCamera(1.1f, 1.2f);
+            LoseWiggle.Instance.PlayLoseAnimation();
+            CameraShake.Instance.ShakeCamera(1.1f, 0.5f);
             if (MusicManager.Instance != null)
             {
                 MusicManager.Instance.StopBackgroundMusic();
-                MusicManager.Instance.PlayLoseSoundSnippet(1.2f);
+                // MusicManager.Instance.PlayLoseSoundSnippet(0.5f);
             }
-            yield return new WaitForSeconds(1.2f);
+            yield return new WaitForSeconds(0.5f);
             TransitionManager.Instance.LoadLevel("Game");
         }
     }
 
     void ResetGameSoft()
     {
-        bg.GetComponent<SpriteRenderer>().color = firstBackgroundColor;
+        // bg.GetComponent<SpriteRenderer>().color = firstBackgroundColor;
 
         currentSpeed = FirstSpeed;
         speedDirection = Vector3.forward;
