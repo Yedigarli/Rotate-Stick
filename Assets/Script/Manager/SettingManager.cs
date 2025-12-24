@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class SettingsManager : MonoBehaviour
 {
@@ -7,6 +8,9 @@ public class SettingsManager : MonoBehaviour
 
     public GameObject settingsPanel;
     public CanvasGroup canvasGroup;
+
+    public Button settingbutton;
+    public Button closeSettingButton;
     public float animDuration = 0.25f;
 
     private bool isAnimating = false;
@@ -14,6 +18,9 @@ public class SettingsManager : MonoBehaviour
     private void Awake()
     {
         Instance = this;
+        settingsPanel.SetActive(false);
+        settingbutton.onClick.AddListener(() => OpenSettings());
+        closeSettingButton.onClick.AddListener(() => CloseSettings());
     }
 
     // 🔘 SETTINGS AÇ
@@ -23,9 +30,6 @@ public class SettingsManager : MonoBehaviour
             return;
 
         settingsPanel.SetActive(true);
-        GameManager.Instance.isSettingsOpen = true;
-        Time.timeScale = 0f;
-
         StartCoroutine(Animate(true));
     }
 
@@ -68,8 +72,6 @@ public class SettingsManager : MonoBehaviour
         if (!open)
         {
             settingsPanel.SetActive(false);
-            GameManager.Instance.isSettingsOpen = false;
-            Time.timeScale = 1f;
         }
 
         isAnimating = false;

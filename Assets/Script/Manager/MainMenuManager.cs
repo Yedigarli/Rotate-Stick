@@ -30,6 +30,10 @@ public class MainMenuManager : MonoBehaviour
         int level = PlayerPrefs.GetInt("level", 1);
         if (levelText != null)
             levelText.text = "Level: " + level.ToString();
+
+        // ⭐ STAR UI 1 DƏFƏ YENİLƏ
+        if (StarUI.Instance != null)
+            StarUI.Instance.UpdateUI();
     }
 
     private void Update()

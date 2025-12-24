@@ -11,18 +11,21 @@ public class GameManager : MonoBehaviour
 {
     public Canvas settingsCanvas;
     public static GameManager Instance;
-
-    public Button settingsButton;
-    public Button closeSettingsButton;
-
     public float FirstSpeed = 60f;
     public float currentSpeed;
     public float raycastDistance = 5f;
     public LayerMask detectableLayers;
 
     public GameObject target;
-    public GameObject ball;
     public GameObject bg;
+
+    [Header("Ball Prefabs")]
+    public GameObject normalBallPrefab;
+    public GameObject starBallPrefab;
+
+    [Header("Star Settings")]
+    [Range(0f, 1f)]
+    public float starBallChance = 0.2f;
 
     //public Color newBackgroundColor = new Color(0.91f, 0.35f, 0.40f, 1f);
     //public Color firstBackgroundColor = new Color(50 / 255f, 160 / 255f, 201 / 255f, 1f);
@@ -33,6 +36,7 @@ public class GameManager : MonoBehaviour
     private bool hasScoredOnce = false;
     private Vector3 speedDirection;
     public float radius = 1.2f;
+    private GameObject currentBall;
 
     private void Awake()
     {
@@ -48,10 +52,6 @@ public class GameManager : MonoBehaviour
 
         if (MusicManager.Instance != null)
             MusicManager.Instance.PlayBackgroundMusic();
-
-        settingsButton.onClick.AddListener(() => SettingsManager.Instance.OpenSettings());
-
-        closeSettingsButton.onClick.AddListener(() => SettingsManager.Instance.CloseSettings());
     }
 
     private void Update()
@@ -71,7 +71,16 @@ public class GameManager : MonoBehaviour
         {
             if (hit.collider != null)
             {
+                Ball ball = hit.collider.GetComponent<Ball>();
+                if (ball != null && ball.ballType == BallType.Star)
+                {
+                    StarManager.Instance.AddStar(1);
+                    if (StarUI.Instance != null)
+                        StarUI.Instance.UpdateUI();
+                }
+
                 Destroy(hit.collider.gameObject);
+                currentBall = null;
                 hasScoredOnce = true;
 
                 speedDirection *= -1;
@@ -100,6 +109,10 @@ public class GameManager : MonoBehaviour
 
     void SpawnBall()
     {
+        // Əgər artıq top varsa → spawn ETMƏ
+        if (currentBall != null)
+            return;
+
         Vector2 pos2D = Random.insideUnitCircle.normalized * radius;
 
         Vector3 spawnPos = new Vector3(
@@ -108,7 +121,12 @@ public class GameManager : MonoBehaviour
             0f
         );
 
-        Instantiate(ball, spawnPos, Quaternion.identity);
+        GameObject prefabToSpawn = normalBallPrefab;
+
+        if (Random.value < starBallChance)
+            prefabToSpawn = starBallPrefab;
+
+        currentBall = Instantiate(prefabToSpawn, spawnPos, Quaternion.identity);
     }
 
     IEnumerator GameOver()
@@ -145,6 +163,9 @@ public class GameManager : MonoBehaviour
 
         foreach (GameObject b in GameObject.FindGameObjectsWithTag("Ball"))
             Destroy(b);
+
+        currentBall = null;
+        CancelInvoke();
 
         Invoke(nameof(SpawnBall), 0.1f);
     }
