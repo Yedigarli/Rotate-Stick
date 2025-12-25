@@ -138,7 +138,7 @@ GameObject:
   - component: {fileID: 506058498}
   - component: {fileID: 506058497}
   m_Layer: 0
-  m_Name: GameManager
+  m_Name: Manager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -177,9 +177,9 @@ Transform:
   - {fileID: 1130145699}
   - {fileID: 580784809}
   - {fileID: 888135726}
-  - {fileID: 724319413}
   - {fileID: 1921021553}
   - {fileID: 1257409574}
+  - {fileID: 724319413}
   - {fileID: 1046169874}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -6994,8 +6994,9 @@ GameObject:
   m_Component:
   - component: {fileID: 1921021553}
   - component: {fileID: 1921021554}
+  - component: {fileID: 1921021555}
   m_Layer: 0
-  m_Name: Bear
+  m_Name: Circle
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -7071,6 +7072,21 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
+--- !u!114 &1921021555
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1921021552}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 103c9f1f963b69d4b921d6977a89bfc3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  location: 1
+  skinVisual: {fileID: 1921021553}
+  skinRenderer: {fileID: 1921021554}
 --- !u!1 &2011375233
 GameObject:
   m_ObjectHideFlags: 0

@@ -15,18 +15,6 @@ public class MusicManager : MonoBehaviour
         }
     }
 
-    public void PlayBackgroundMusic()
-    {
-        if (!bgmusic.isPlaying)
-            bgmusic.Play();
-    }
-
-    public void StopBackgroundMusic()
-    {
-        if (bgmusic.isPlaying)
-            bgmusic.Stop();
-    }
-
     // 🔹 loseSound-dan yalnız müəyyən hissəni çalmaq
     public void PlayLoseSoundSnippet(float snippetDuration = 1.7f)
     {

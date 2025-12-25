@@ -49,9 +49,6 @@ public class GameManager : MonoBehaviour
         speedDirection = Vector3.forward;
 
         Invoke(nameof(SpawnBall), 0.1f);
-
-        if (MusicManager.Instance != null)
-            MusicManager.Instance.PlayBackgroundMusic();
     }
 
     private void Update()
@@ -143,11 +140,6 @@ public class GameManager : MonoBehaviour
         {
             LoseWiggle.Instance.PlayLoseAnimation();
             CameraShake.Instance.ShakeCamera(1.1f, 0.5f);
-            if (MusicManager.Instance != null)
-            {
-                MusicManager.Instance.StopBackgroundMusic();
-                // MusicManager.Instance.PlayLoseSoundSnippet(0.5f);
-            }
             yield return new WaitForSeconds(0.5f);
             TransitionManager.Instance.LoadLevel("Game");
         }
