@@ -128,7 +128,6 @@ public class GameManager : MonoBehaviour
 
     IEnumerator GameOver()
     {
-        Handheld.Vibrate();
         if (!hasScoredOnce)
         {
             CameraShake.Instance.ShakeCamera(1.1f, 0.3f);
