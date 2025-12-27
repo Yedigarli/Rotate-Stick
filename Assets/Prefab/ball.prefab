@@ -47,6 +47,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ballType: 0
+  isMoving: 0
+  moveSpeed: 2
+  moveRange: 0.5
+  pulseSpeed: 3
+  pulseAmount: 0.1
 --- !u!212 &866991986431341271
 SpriteRenderer:
   m_ObjectHideFlags: 0

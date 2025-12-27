@@ -136,6 +136,7 @@ GameObject:
   - component: {fileID: 4616070383946672755}
   - component: {fileID: 7030985342494734472}
   - component: {fileID: 8308075921294168937}
+  - component: {fileID: -1522334475902134606}
   m_Layer: 6
   m_Name: ball2
   m_TagString: Ball
@@ -172,6 +173,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ballType: 1
+  isMoving: 0
+  moveSpeed: 2
+  moveRange: 0.5
+  pulseSpeed: 3
+  pulseAmount: 0.1
 --- !u!212 &7030985342494734472
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -263,3 +269,18 @@ CircleCollider2D:
   m_CompositeOrder: 0
   m_Offset: {x: 0, y: 0}
   m_Radius: 0.49999997
+--- !u!114 &-1522334475902134606
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6372930375822188005}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e19747de3f5aca642ab2be37e372fb86, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_EffectColor: {r: 1, g: 1, b: 1, a: 1}
+  m_EffectDistance: {x: 2, y: 2}
+  m_UseGraphicAlpha: 1
