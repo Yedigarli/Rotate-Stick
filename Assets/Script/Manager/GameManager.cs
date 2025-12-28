@@ -13,13 +13,13 @@ public class GameManager : MonoBehaviour
     private Vector3 speedDirection = Vector3.forward;
 
     [Header("Raycast Settings")]
-    public float raycastDistance = 10f; // Daha uzun raycast
+    public float raycastDistance = 10f;
     public LayerMask detectableLayers;
 
     [Header("Objects")]
     public GameObject target;
     public GameObject ballParticlePrefab;
-    public GameObject floatingTextPrefab; // "+1" yazısı üçün
+    public GameObject floatingTextPrefab;
 
     [Header("Spawning")]
     public GameObject normalBallPrefab;
@@ -51,7 +51,6 @@ public class GameManager : MonoBehaviour
         if (isSettingsOpen)
             return;
 
-        // Oxun fırlanması
         if (target != null)
             transform.RotateAround(
                 target.transform.position,
@@ -76,35 +75,51 @@ public class GameManager : MonoBehaviour
 
         if (hit.collider != null)
         {
+            Ball ball = hit.collider.GetComponent<Ball>();
             float distToCenter = Vector2.Distance(hit.point, hit.collider.transform.position);
-            bool isPerfect = distToCenter < 0.18f; // Bir az daha geniş limit
 
-            // Rəng Ayarları
-            Color perfectColor = new Color(1f, 0.84f, 0f); // Parlaq Qızılı/Sarı
-            Color normalColor = Color.white;
+            // PERFECT limiti
+            bool isPerfect = distToCenter < 0.18f;
+
+            Color perfectColor = LevelManager.Instance.perfectColor;
+            Color niceColor = LevelManager.Instance.niceColor;
 
             if (isPerfect)
             {
+                // PERFECT MƏNTİQİ
                 comboCount++;
-                LevelManager.Instance.ShowCombo(comboCount, perfectColor);
+                LevelManager.Instance.ShowStatusByType("Perfect", comboCount);
+                LevelManager.Instance.ShowCombo(comboCount, LevelManager.Instance.perfectColor);
+
                 CreateFloatingText(hit.collider.transform.position, "+2", perfectColor);
                 PlayBallEffect(hit.collider.transform.position, perfectColor);
-                ChangeBGColor(); // Yalnız Perfect olanda rəng dəyişsin ki, mükafat hissi versin
+                ChangeBGColor();
+
+                LevelManager.Instance.AddProgress(2); // Perfect olanda 2 xal
             }
             else
             {
+                // NICE MƏNTİQİ
                 comboCount = 0;
-                LevelManager.Instance.ShowCombo(0, normalColor);
-                CreateFloatingText(hit.collider.transform.position, "+1", normalColor);
-                PlayBallEffect(hit.collider.transform.position, normalColor);
+                LevelManager.Instance.ShowStatusByType("Nice");
+                LevelManager.Instance.ShowCombo(0, Color.white);
+
+                CreateFloatingText(hit.collider.transform.position, "+1", Color.white);
+                PlayBallEffect(hit.collider.transform.position, Color.white);
+
+                LevelManager.Instance.AddProgress(1); // Normal vuruşda 1 xal
             }
 
-            // Topu məhv et və yenisini yarat
+            // --- ULDUZ ARTIMI ---
+            if (ball != null && ball.ballType == BallType.Star)
+            {
+                if (StarManager.Instance != null)
+                    StarManager.Instance.AddStar(1);
+            }
+
             Destroy(hit.collider.gameObject);
             currentBall = null;
             hasScoredOnce = true;
-
-            LevelManager.Instance.AddProgress(isPerfect ? 2 : 1);
 
             speedDirection *= -1;
             currentSpeed += 2.5f;
@@ -116,29 +131,31 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    // --- DİGƏR FUNKSİYALAR (DƏYİŞMƏDİ) ---
+
     void CreateFloatingText(Vector3 pos, string text, Color color)
     {
         if (floatingTextPrefab == null)
             return;
         GameObject fText = Instantiate(floatingTextPrefab, pos, Quaternion.identity);
+        Canvas mainCanvas = FindFirstObjectByType<Canvas>();
+        if (mainCanvas != null && fText.GetComponent<RectTransform>() != null)
+        {
+            fText.transform.SetParent(mainCanvas.transform, false);
+            Vector2 screenPoint = Camera.main.WorldToScreenPoint(pos);
+            fText.transform.position = screenPoint;
+        }
         TMP_Text tmp = fText.GetComponentInChildren<TMP_Text>();
         if (tmp != null)
         {
             tmp.text = text;
             tmp.color = color;
-            // Yazıya bir az "Glow" (parıltı) vermək üçün
-            tmp.fontSharedMaterial.SetColor(ShaderUtilities.ID_GlowColor, color);
         }
     }
 
     void SpawnBall()
     {
-        // 1. Səhnədə hələ də top varmı deyə təkrar yoxla (Sığorta)
-        if (currentBall != null)
-            return;
-
-        // Əgər tag ilə axtarışda nəsə qalıbsa, spawn etmə (Ekran təmiz olmalıdır)
-        if (GameObject.FindGameObjectsWithTag("Ball").Length > 0)
+        if (currentBall != null || GameObject.FindGameObjectsWithTag("Ball").Length > 0)
             return;
 
         Vector2 pos2D = Random.insideUnitCircle.normalized * radius;
@@ -147,18 +164,12 @@ public class GameManager : MonoBehaviour
             target.transform.position.y + pos2D.y,
             0f
         );
-
         GameObject prefabToSpawn =
             (Random.value < starBallChance) ? starBallPrefab : normalBallPrefab;
-
-        // Topu yaradırıq
         currentBall = Instantiate(prefabToSpawn, spawnPos, Quaternion.identity);
 
-        // Ball komponentini tənzimləyirik
         Ball ballScript = currentBall.GetComponent<Ball>();
-        int currentLevel = PlayerPrefs.GetInt("level", 1);
-
-        if (currentLevel > 5 && Random.value < 0.3f)
+        if (PlayerPrefs.GetInt("level", 1) > 5 && Random.value < 0.3f)
         {
             ballScript.isMoving = true;
             ballScript.moveSpeed = Random.Range(2f, 4f);
@@ -185,29 +196,16 @@ public class GameManager : MonoBehaviour
 
     void ResetGameSoft()
     {
-        // 1. Bütün Invoke-ları dayandır (Çox vacibdir!)
         CancelInvoke();
-
-        // 2. Mövcud top referansını sıfırla
         currentBall = null;
-
-        // 3. Səhnədəki BÜTÜN topları dərhal məhv et
-        GameObject[] balls = GameObject.FindGameObjectsWithTag("Ball");
-        foreach (GameObject b in balls)
-        {
+        foreach (GameObject b in GameObject.FindGameObjectsWithTag("Ball"))
             Destroy(b);
-        }
-
-        // 4. Parametrləri sıfırla
         currentSpeed = FirstSpeed;
         speedDirection = Vector3.forward;
         hasScoredOnce = false;
-
-        // 5. Bir az gözlə və yeni top yarat (Yalnız bir dəfə)
         Invoke(nameof(SpawnBall), 0.15f);
     }
 
-    //elaveler
     public void PlayBallEffect(Vector3 pos, Color ballColor)
     {
         if (ballParticlePrefab == null)

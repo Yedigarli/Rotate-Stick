@@ -9,12 +9,21 @@ public class StarUI : MonoBehaviour
     private void Awake()
     {
         Instance = this;
+    }
+
+    private void Start()
+    {
+        // Oyun açılan kimi rəqəmi yenilə
         UpdateUI();
     }
 
     public void UpdateUI()
     {
+        // Əgər ulduz artdısa və ya menyu açıldısa, yaddaşdan ən son halı çək
         int stars = PlayerPrefs.GetInt("Stars", 0);
-        starText.text = stars.ToString();
+        if (starText != null)
+        {
+            starText.text = stars.ToString();
+        }
     }
 }

@@ -12,24 +12,43 @@ public class LevelManager : MonoBehaviour
     public TMP_Text currentLevelText;
     public TMP_Text nextLevelText;
     public TMP_Text comboText;
+    public TMP_Text statusText;
+
+    [Header("Status Colors")]
+    // Rəngləri buradakı kimi dəqiqləşdir:
+    public Color perfectColor = new Color(1f, 0.84f, 0f); // Qızılı/Sarı
+    public Color niceColor = new Color(0f, 0.8f, 1f); // Mavi
+    public Color levelUpColor = new Color(0.2f, 1f, 0.2f); // Yaşıl
 
     [Header("Settings")]
     public int pointsToNextLevel;
     private int currentPoints = 0;
     private int level;
 
+    [Header("Randomized Words")]
+    private string[] perfectWords = { "PERFECT!", "AMAZING!", "FANTASTIC!", "BULLSEYE!" };
+    private string[] niceWords = { "NICE!", "GOOD!", "COOL!", "NOT BAD!" };
+    private string[] insaneWords = { "INSANE!", "GODLIKE!", "UNSTOPPABLE!", "MONSTER!" };
+
     private void Awake()
     {
-        Instance = this;
+        if (Instance == null)
+            Instance = this;
+
         level = PlayerPrefs.GetInt("level", 1);
-        pointsToNextLevel = level + 5; // Hər leveldə tələb olunan xal artır
+        pointsToNextLevel = level + 5;
+
+        if (statusText != null)
+            statusText.gameObject.SetActive(false);
+        if (comboText != null)
+            comboText.gameObject.SetActive(false);
+
         UpdateUI();
     }
 
     public void AddProgress(int amount)
     {
         currentPoints += amount;
-
         if (currentPoints >= pointsToNextLevel)
         {
             LevelUp();
@@ -44,15 +63,89 @@ public class LevelManager : MonoBehaviour
         pointsToNextLevel = level + 5;
         PlayerPrefs.SetInt("level", level);
 
-        // Hər level artanda sürəti bir az sıfırla ki, oyunçu nəfəs alsın
-        GameManager.Instance.currentSpeed = GameManager.Instance.FirstSpeed;
-        GameManager.Instance.FirstSpeed += 5f;
-        PlayerPrefs.SetFloat("firstspeed", GameManager.Instance.FirstSpeed);
+        ShowStatus("LEVEL UP!", levelUpColor);
+
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.currentSpeed = GameManager.Instance.FirstSpeed;
+            GameManager.Instance.FirstSpeed += 5f;
+            PlayerPrefs.SetFloat("firstspeed", GameManager.Instance.FirstSpeed);
+        }
 
         PlayerPrefs.Save();
     }
 
-    // LevelManager.cs daxilinə bu funksiyanı əlavə et
+    public void ShowStatusByType(string type, int combo = 0)
+    {
+        string selectedWord = "";
+        Color selectedColor = Color.white;
+
+        if (type == "Perfect")
+        {
+            // Əgər kombo 5-dən çoxdursa, daha "ağır" sözlər çıxsın
+            if (combo >= 5)
+            {
+                selectedWord = insaneWords[Random.Range(0, insaneWords.Length)];
+                selectedColor = Color.magenta; // Bənövşəyi/Parlaq rəng
+            }
+            else
+            {
+                selectedWord = perfectWords[Random.Range(0, perfectWords.Length)];
+                selectedColor = perfectColor;
+            }
+        }
+        else if (type == "Nice")
+        {
+            selectedWord = niceWords[Random.Range(0, niceWords.Length)];
+            selectedColor = niceColor;
+        }
+        else if (type == "LevelUp")
+        {
+            selectedWord = "LEVEL UP!";
+            selectedColor = levelUpColor;
+        }
+
+        ShowStatus(selectedWord, selectedColor);
+    }
+
+    public void ShowStatus(string message, Color col)
+    {
+        if (statusText == null)
+            return;
+
+        statusText.text = message;
+        statusText.color = col; // Rəng burada təyin olunur
+        statusText.gameObject.SetActive(true);
+
+        StopCoroutine(nameof(StatusAnimationRoutine));
+        StartCoroutine(nameof(StatusAnimationRoutine));
+    }
+
+    IEnumerator StatusAnimationRoutine()
+    {
+        RectTransform rect = statusText.GetComponent<RectTransform>();
+        rect.localScale = Vector3.zero;
+
+        float t = 0;
+        while (t < 0.15f)
+        {
+            t += Time.deltaTime;
+            rect.localScale = Vector3.Lerp(Vector3.zero, Vector3.one * 1.5f, t / 0.15f);
+            yield return null;
+        }
+
+        t = 0;
+        while (t < 0.1f)
+        {
+            t += Time.deltaTime;
+            rect.localScale = Vector3.Lerp(Vector3.one * 1.5f, Vector3.one, t / 0.1f);
+            yield return null;
+        }
+
+        yield return new WaitForSeconds(0.7f);
+        statusText.gameObject.SetActive(false);
+    }
+
     public void ShowCombo(int combo, Color color)
     {
         if (comboText == null)
@@ -62,9 +155,8 @@ public class LevelManager : MonoBehaviour
         {
             comboText.gameObject.SetActive(true);
             comboText.text = "COMBO X" + combo;
-            comboText.color = color;
+            comboText.color = color; // Rəng burada təyin olunur
 
-            // Əvvəlki animasiyanı dayandır və yenisini başlat
             StopCoroutine(nameof(ComboAnimationRoutine));
             StartCoroutine(nameof(ComboAnimationRoutine));
         }
@@ -77,62 +169,42 @@ public class LevelManager : MonoBehaviour
     IEnumerator ComboAnimationRoutine()
     {
         RectTransform rect = comboText.GetComponent<RectTransform>();
+        Vector2 originalPos = new Vector2(rect.anchoredPosition.x, rect.anchoredPosition.y);
 
-        // 1. PUNCH EFFEKTİ (Böyümə)
         float elapsed = 0f;
-        float duration = 0.15f;
-        Vector3 startScale = Vector3.one * 0.5f;
-        Vector3 targetScale = Vector3.one * 1.4f;
-
-        while (elapsed < duration)
+        while (elapsed < 0.15f)
         {
             elapsed += Time.deltaTime;
-            rect.localScale = Vector3.Lerp(startScale, targetScale, elapsed / duration);
+            rect.localScale = Vector3.Lerp(Vector3.one * 0.8f, Vector3.one * 1.3f, elapsed / 0.15f);
             yield return null;
         }
 
-        // 2. GERİ QAYIDIŞ (Sabitlənmə)
-        elapsed = 0f;
-        duration = 0.1f;
-        while (elapsed < duration)
+        float timer = 0f;
+        while (timer < 0.8f)
         {
-            elapsed += Time.deltaTime;
-            rect.localScale = Vector3.Lerp(targetScale, Vector3.one, elapsed / duration);
+            timer += Time.deltaTime;
+            float offset = Mathf.Sin(Time.time * 15f) * 5f;
+            rect.anchoredPosition = new Vector2(originalPos.x + offset, originalPos.y);
             yield return null;
         }
 
-        // 3. YELLƏNMƏ VƏ YOX OLMA (Idle & Fade)
-        float idleTime = 0f;
-        while (idleTime < 0.8f)
-        {
-            idleTime += Time.deltaTime;
-            // Yüngül yuxarı-aşağı yellənmə
-            rect.anchoredPosition += new Vector2(0, Mathf.Sin(Time.time * 10f) * 0.5f);
-            yield return null;
-        }
-
+        rect.anchoredPosition = originalPos;
         comboText.gameObject.SetActive(false);
-    }
-
-    IEnumerator ScaleDown(Transform t)
-    {
-        while (t.localScale.x > 1.0f)
-        {
-            t.localScale -= Vector3.one * Time.deltaTime * 3f;
-            yield return null;
-        }
-        t.localScale = Vector3.one;
     }
 
     void UpdateUI()
     {
-        float fillAmount = (float)currentPoints / pointsToNextLevel;
-        progressBarFill.fillAmount = fillAmount;
+        if (progressBarFill != null)
+        {
+            float fillAmount = (float)currentPoints / pointsToNextLevel;
+            progressBarFill.fillAmount = fillAmount;
+            // Progress bar rəngi qırmızıdan yaşıla keçir
+            progressBarFill.color = Color.Lerp(Color.red, Color.green, fillAmount);
+        }
 
-        // Bar dolduqca rəngi yaşıllaşsın (Opsional)
-        progressBarFill.color = Color.Lerp(Color.red, Color.green, fillAmount);
-
-        currentLevelText.text = level.ToString();
-        nextLevelText.text = (level + 1).ToString();
+        if (currentLevelText != null)
+            currentLevelText.text = level.ToString();
+        if (nextLevelText != null)
+            nextLevelText.text = (level + 1).ToString();
     }
 }

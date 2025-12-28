@@ -4,40 +4,25 @@ public class Ball : MonoBehaviour
 {
     public BallType ballType;
 
-    [Header("Movement Settings")]
+    [Header("Asanlaşdırılmış Hərəkət")]
     public bool isMoving;
-    public float moveSpeed = 2f;
-    public float moveRange = 0.5f;
-
-    [Header("Visual Juice")]
-    public float pulseSpeed = 3f;
-    public float pulseAmount = 0.1f;
+    public float moveSpeed = 1.5f; // Sürəti azaltdıq
+    public float moveRange = 0.8f; // Hərəkət məsafəsi
 
     private Vector3 startPos;
-    private Vector3 startScale;
+    private float randomOffset;
 
     private void Start()
     {
         startPos = transform.position;
-        startScale = transform.localScale;
+        // Bütün toplar eyni anda eyni tərəfə getməsin deyə random başlanğıc
+        randomOffset = Random.Range(0f, 2f * Mathf.PI);
     }
 
     private void Update()
     {
-        // 1. Canlılıq effekti (Scale pulse) - bu həmişə qalsın
-        float pulse = Mathf.Sin(Time.time * pulseSpeed) * pulseAmount;
-        transform.localScale = startScale + new Vector3(pulse, pulse, 0);
-
-        // 2. Ədalətli hərəkət: Top dairəvi xətt boyunca (sağa-sola) fırlanır
-        if (isMoving)
-        {
-            // Top mərkəz ətrafında kiçik bir bucaqla yellənir (pendulum kimi)
-            float angle = Mathf.Sin(Time.time * moveSpeed) * 30f; // 30 dərəcə sağa-sola
-            transform.RotateAround(
-                GameManager.Instance.target.transform.position,
-                Vector3.forward,
-                angle * Time.deltaTime
-            );
-        }
+        // 1. Kiçik nəfəs alma effekti (Scale)
+        float pulse = Mathf.Sin(Time.time * 3f) * 0.05f;
+        transform.localScale = Vector3.one * (0.27f + pulse);
     }
 }

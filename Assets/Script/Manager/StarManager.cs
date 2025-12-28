@@ -22,9 +22,12 @@ public class StarManager : MonoBehaviour
     {
         stars += amount;
         PlayerPrefs.SetInt("Stars", stars);
+        PlayerPrefs.Save(); // Yaddaşa həkk et
 
         if (StarUI.Instance != null)
+        {
             StarUI.Instance.UpdateUI();
+        }
     }
 
     public bool SpendStars(int amount)
