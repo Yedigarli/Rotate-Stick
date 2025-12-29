@@ -18,6 +18,7 @@ public class GameManager : MonoBehaviour
 
     [Header("Objects")]
     public GameObject target;
+    public GameObject player;
     public GameObject ballParticlePrefab;
     public GameObject floatingTextPrefab;
 
@@ -33,14 +34,17 @@ public class GameManager : MonoBehaviour
     private GameObject currentBall;
     private int comboCount = 0;
 
-    [Header("Visuals")]
-    public Camera mainCamera;
-    public Color[] bgColors;
-    private int colorIndex = 0;
+    // ⭐ Topun HDR rəngi üçün dəyişən
+    [ColorUsage(showAlpha: true, hdr: true)]
+    public Color ballGlowColor = Color.white;
+
+    [ColorUsage(showAlpha: true, hdr: true)]
+    public Color playerGlowColor = Color.cyan; // Çubuğun parıltı rəngi
 
     private void Awake()
     {
         Instance = this;
+        ApplyGlobalColors();
         FirstSpeed = PlayerPrefs.GetFloat("firstspeed", 90);
         currentSpeed = FirstSpeed;
         Invoke(nameof(SpawnBall), 0.1f);
@@ -61,6 +65,17 @@ public class GameManager : MonoBehaviour
         if (Input.GetMouseButtonDown(0))
         {
             HandleShoot();
+        }
+    }
+
+    void ApplyGlobalColors()
+    {
+        // Çubuğun rəngini parlat
+        if (player != null)
+        {
+            SpriteRenderer playerSr = player.GetComponent<SpriteRenderer>();
+            if (playerSr != null)
+                playerSr.color = playerGlowColor;
         }
     }
 
@@ -93,8 +108,6 @@ public class GameManager : MonoBehaviour
 
                 CreateFloatingText(hit.collider.transform.position, "+2", perfectColor);
                 PlayBallEffect(hit.collider.transform.position, perfectColor);
-                ChangeBGColor();
-
                 LevelManager.Instance.AddProgress(2); // Perfect olanda 2 xal
             }
             else
@@ -164,9 +177,15 @@ public class GameManager : MonoBehaviour
             target.transform.position.y + pos2D.y,
             0f
         );
+
         GameObject prefabToSpawn =
             (Random.value < starBallChance) ? starBallPrefab : normalBallPrefab;
         currentBall = Instantiate(prefabToSpawn, spawnPos, Quaternion.identity);
+
+        // --- TOPUN HDR RƏNGİNİ TƏTBİQ ET ---
+        SpriteRenderer ballSr = currentBall.GetComponent<SpriteRenderer>();
+        if (ballSr != null)
+            ballSr.color = ballGlowColor;
 
         Ball ballScript = currentBall.GetComponent<Ball>();
         if (PlayerPrefs.GetInt("level", 1) > 5 && Random.value < 0.3f)
@@ -212,28 +231,17 @@ public class GameManager : MonoBehaviour
             return;
         GameObject effect = Instantiate(ballParticlePrefab, pos, Quaternion.identity);
         var main = effect.GetComponent<ParticleSystem>().main;
-        main.startColor = ballColor;
+        main.startColor = ballGlowColor;
         Destroy(effect, 1f);
     }
 
-    public void ChangeBGColor()
+    private void OnValidate()
     {
-        if (bgColors.Length == 0)
-            return;
-        colorIndex = (colorIndex + 1) % bgColors.Length;
-        StopCoroutine("LerpColor");
-        StartCoroutine(LerpColor(bgColors[colorIndex]));
-    }
-
-    IEnumerator LerpColor(Color targetColor)
-    {
-        float t = 0;
-        Color startColor = mainCamera.backgroundColor;
-        while (t < 1)
+        if (player != null)
         {
-            t += Time.deltaTime * 0.8f;
-            mainCamera.backgroundColor = Color.Lerp(startColor, targetColor, t);
-            yield return null;
+            SpriteRenderer playerSr = player.GetComponent<SpriteRenderer>();
+            if (playerSr != null)
+                playerSr.color = playerGlowColor;
         }
     }
 }

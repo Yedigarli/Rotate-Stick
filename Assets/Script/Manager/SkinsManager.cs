@@ -31,9 +31,9 @@ public class SkinsManager : MonoBehaviour
         skinsPanel.SetActive(false);
 
         if (skinsbutton != null)
-            skinsbutton.onClick.AddListener(OpenSettings);
+            skinsbutton.onClick.AddListener(OpenSkins);
         if (closeSkinsButton != null)
-            closeSkinsButton.onClick.AddListener(CloseSettings);
+            closeSkinsButton.onClick.AddListener(CloseSkins);
     }
 
     // Düymələr yarandıqda özlərini bura əlavə edir
@@ -72,15 +72,23 @@ public class SkinsManager : MonoBehaviour
         }
     }
 
-    public void OpenSettings()
+    public void OpenSkins()
     {
         if (isAnimating)
             return;
+
         skinsPanel.SetActive(true);
+
+        // Düymələri məcburi şəkildə yeniləyək
+        foreach (SkinButton btn in allButtons)
+        {
+            btn.UpdateUI();
+        }
+
         StartCoroutine(Animate(true));
     }
 
-    public void CloseSettings()
+    public void CloseSkins()
     {
         if (isAnimating)
             return;
@@ -110,5 +118,12 @@ public class SkinsManager : MonoBehaviour
         if (!open)
             skinsPanel.SetActive(false);
         isAnimating = false;
+    }
+
+    public void MakeSpriteGlow(SpriteRenderer sr, float intensity)
+    {
+        // Spritun rəngini HDR faktoruna vuraraq parladırıq
+        float factor = Mathf.Pow(2, intensity);
+        sr.color = new Color(1 * factor, 1 * factor, 1 * factor, 1);
     }
 }

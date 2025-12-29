@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 5cc7ae437ff0345419639f782043f91a
+guid: c0cbf42e0b598724593494a7c0bc9790
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -7232521027535748977
-    second: Cat_0
+      213: 6610554164139935230
+    second: "sk\u0131nsbg_0"
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -75,7 +75,7 @@ TextureImporter:
     maxTextureSize: 2048
     resizeAlgorithm: 0
     textureFormat: -1
-    textureCompression: 2
+    textureCompression: 1
     compressionQuality: 50
     crunchedCompression: 0
     allowsAlphaSplitting: 0
@@ -126,13 +126,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Cat_0
+      name: "sk\u0131nsbg_0"
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 373
-        height: 381
+        width: 300
+        height: 300
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -141,8 +141,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: f80403be17ce0ab90800000000000000
-      internalID: -7232521027535748977
+      spriteID: ef54a02fcf76dbb50800000000000000
+      internalID: 6610554164139935230
       vertices: []
       indices: 
       edges: []
@@ -161,7 +161,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      Cat_0: -7232521027535748977
+      "sk\u0131nsbg_0": 6610554164139935230
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

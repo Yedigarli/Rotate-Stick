@@ -14,16 +14,25 @@ public class LevelManager : MonoBehaviour
     public TMP_Text comboText;
     public TMP_Text statusText;
 
-    [Header("Status Colors")]
-    // Rəngləri buradakı kimi dəqiqləşdir:
-    public Color perfectColor = new Color(1f, 0.84f, 0f); // Qızılı/Sarı
-    public Color niceColor = new Color(0f, 0.8f, 1f); // Mavi
-    public Color levelUpColor = new Color(0.2f, 1f, 0.2f); // Yaşıl
+    [Header("Status Colors (HDR)")]
+    [ColorUsage(showAlpha: true, hdr: true)]
+    public Color comboColor = new Color(2f, 0.5f, 0f); // HDR Neon Narıncı
+
+    [ColorUsage(showAlpha: true, hdr: true)]
+    public Color perfectColor = new Color(1.5f, 1.2f, 0f); // HDR Sarı
+
+    [ColorUsage(true, true)]
+    public Color niceColor = new Color(0f, 1.2f, 1.5f); // HDR Mavi
+
+    [ColorUsage(true, true)]
+    public Color levelUpColor = new Color(0.2f, 2f, 0.2f); // HDR Yaşıl
 
     [Header("Settings")]
     public int pointsToNextLevel;
+    public float smoothSpeed = 5f; // Barın dolma sürəti
     private int currentPoints = 0;
     private int level;
+    private float targetFillAmount;
 
     [Header("Randomized Words")]
     private string[] perfectWords = { "PERFECT!", "AMAZING!", "FANTASTIC!", "BULLSEYE!" };
@@ -38,31 +47,64 @@ public class LevelManager : MonoBehaviour
         level = PlayerPrefs.GetInt("level", 1);
         pointsToNextLevel = level + 5;
 
-        if (statusText != null)
-            statusText.gameObject.SetActive(false);
-        if (comboText != null)
-            comboText.gameObject.SetActive(false);
+        statusText?.gameObject.SetActive(false);
+        comboText?.gameObject.SetActive(false);
 
-        UpdateUI();
+        // ⭐ İlk açılışda UI-ı yeniləyirik
+        UpdateLevelTexts();
+        targetFillAmount = 0;
+        if (progressBarFill != null)
+            progressBarFill.fillAmount = 0;
+    }
+
+    private void Update()
+    {
+        if (progressBarFill != null)
+        {
+            // Smooth keçid
+            progressBarFill.fillAmount = Mathf.Lerp(
+                progressBarFill.fillAmount,
+                targetFillAmount,
+                Time.deltaTime * smoothSpeed
+            );
+
+            // HDR Rəng keçidi (Qırmızıdan Yaşıla)
+            Color baseColor = Color.Lerp(Color.red, Color.green, progressBarFill.fillAmount);
+
+            // ⭐ Parıltını (Intensity) tətbiq edirik
+            progressBarFill.color = new Color(
+                baseColor.r * 2f,
+                baseColor.g * 2f,
+                baseColor.b * 2f,
+                1f
+            );
+        }
     }
 
     public void AddProgress(int amount)
     {
         currentPoints += amount;
+        // Hədəfi təyin edirik, Update bunu smooth şəkildə dolduracaq
+        targetFillAmount = (float)currentPoints / pointsToNextLevel;
+
         if (currentPoints >= pointsToNextLevel)
         {
             LevelUp();
         }
-        UpdateUI();
     }
 
     void LevelUp()
     {
         level++;
         currentPoints = 0;
+        targetFillAmount = 0;
+        // Qeyd: progressBarFill.fillAmount-ı 0 etmirik ki, Update-dəki Lerp onu smooth boşaltsın.
+
         pointsToNextLevel = level + 5;
         PlayerPrefs.SetInt("level", level);
+        PlayerPrefs.Save();
 
+        UpdateLevelTexts();
         ShowStatus("LEVEL UP!", levelUpColor);
 
         if (GameManager.Instance != null)
@@ -71,8 +113,6 @@ public class LevelManager : MonoBehaviour
             GameManager.Instance.FirstSpeed += 5f;
             PlayerPrefs.SetFloat("firstspeed", GameManager.Instance.FirstSpeed);
         }
-
-        PlayerPrefs.Save();
     }
 
     public void ShowStatusByType(string type, int combo = 0)
@@ -82,11 +122,10 @@ public class LevelManager : MonoBehaviour
 
         if (type == "Perfect")
         {
-            // Əgər kombo 5-dən çoxdursa, daha "ağır" sözlər çıxsın
             if (combo >= 5)
             {
                 selectedWord = insaneWords[Random.Range(0, insaneWords.Length)];
-                selectedColor = Color.magenta; // Bənövşəyi/Parlaq rəng
+                selectedColor = new Color(2f, 0f, 2f); // HDR Magenta
             }
             else
             {
@@ -99,11 +138,6 @@ public class LevelManager : MonoBehaviour
             selectedWord = niceWords[Random.Range(0, niceWords.Length)];
             selectedColor = niceColor;
         }
-        else if (type == "LevelUp")
-        {
-            selectedWord = "LEVEL UP!";
-            selectedColor = levelUpColor;
-        }
 
         ShowStatus(selectedWord, selectedColor);
     }
@@ -112,9 +146,8 @@ public class LevelManager : MonoBehaviour
     {
         if (statusText == null)
             return;
-
         statusText.text = message;
-        statusText.color = col; // Rəng burada təyin olunur
+        statusText.color = col;
         statusText.gameObject.SetActive(true);
 
         StopCoroutine(nameof(StatusAnimationRoutine));
@@ -146,6 +179,14 @@ public class LevelManager : MonoBehaviour
         statusText.gameObject.SetActive(false);
     }
 
+    void UpdateLevelTexts()
+    {
+        if (currentLevelText != null)
+            currentLevelText.text = level.ToString();
+        if (nextLevelText != null)
+            nextLevelText.text = (level + 1).ToString();
+    }
+
     public void ShowCombo(int combo, Color color)
     {
         if (comboText == null)
@@ -155,7 +196,9 @@ public class LevelManager : MonoBehaviour
         {
             comboText.gameObject.SetActive(true);
             comboText.text = "COMBO X" + combo;
-            comboText.color = color; // Rəng burada təyin olunur
+
+            // Burada mərkəzi comboColor-u istifadə edirik
+            comboText.color = comboColor;
 
             StopCoroutine(nameof(ComboAnimationRoutine));
             StartCoroutine(nameof(ComboAnimationRoutine));
@@ -192,19 +235,13 @@ public class LevelManager : MonoBehaviour
         comboText.gameObject.SetActive(false);
     }
 
-    void UpdateUI()
+    private void OnValidate()
     {
-        if (progressBarFill != null)
+        if (comboText != null)
         {
-            float fillAmount = (float)currentPoints / pointsToNextLevel;
-            progressBarFill.fillAmount = fillAmount;
-            // Progress bar rəngi qırmızıdan yaşıla keçir
-            progressBarFill.color = Color.Lerp(Color.red, Color.green, fillAmount);
+            SpriteRenderer comboSr = comboText.GetComponent<SpriteRenderer>();
+            if (comboSr != null)
+                comboSr.color = comboColor;
         }
-
-        if (currentLevelText != null)
-            currentLevelText.text = level.ToString();
-        if (nextLevelText != null)
-            nextLevelText.text = (level + 1).ToString();
     }
 }

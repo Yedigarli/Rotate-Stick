@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: Cat
   m_EditorClassIdentifier: 
   skinID: Cat
-  sprite: {fileID: -7232521027535748977, guid: 5cc7ae437ff0345419639f782043f91a, type: 3}
+  sprite: {fileID: 643549736833298701, guid: b633e9c797e50674994e0f13d60391db, type: 3}
   menuScale: {x: 1, y: 1, z: 1}
-  menuYOffset: 1.645
+  menuYOffset: 1.371
   gameScale: {x: 1, y: 1, z: 1}
   gameYOffset: 0.242
   price: 40

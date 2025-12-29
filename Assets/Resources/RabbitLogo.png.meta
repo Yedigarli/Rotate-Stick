@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 5cc7ae437ff0345419639f782043f91a
+guid: 3f1fa01238393d9458902eb22aadba72
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -7232521027535748977
-    second: Cat_0
+      213: 1028064406640460089
+    second: RabbitLogo_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -126,13 +126,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Cat_0
+      name: RabbitLogo_0
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 373
-        height: 381
+        width: 369
+        height: 478
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -141,8 +141,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: f80403be17ce0ab90800000000000000
-      internalID: -7232521027535748977
+      spriteID: 9310704812b644e00800000000000000
+      internalID: 1028064406640460089
       vertices: []
       indices: 
       edges: []
@@ -161,7 +161,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      Cat_0: -7232521027535748977
+      RabbitLogo_0: 1028064406640460089
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

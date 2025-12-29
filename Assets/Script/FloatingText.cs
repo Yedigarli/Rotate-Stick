@@ -6,6 +6,8 @@ public class FloatingText : MonoBehaviour
     public float moveSpeed = 150f; // UI üçün daha böyük rəqəm lazımdır
     public float fadeDuration = 1f;
     private TMP_Text textMesh;
+
+    [ColorUsage(showAlpha: true, hdr: true)]
     private Color startColor;
     private float timer = 0f;
 
