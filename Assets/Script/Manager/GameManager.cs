@@ -32,9 +32,13 @@ public class GameManager : MonoBehaviour
 
     [Header("State")]
     public bool isSettingsOpen = false;
-    private bool hasScoredOnce = false;
     private GameObject currentBall;
     private int comboCount = 0;
+
+    [Header("Second Chance Setup")]
+    public GameObject secondChancePanel;
+    public Button noThanksBtn;
+    public Button useStarBtn; // 10 ulduzla davam etmək üçün
 
     [Header("GameOver")]
     public GameObject gameoverPOPUP;
@@ -95,6 +99,17 @@ public class GameManager : MonoBehaviour
         if (skinsButton != null)
         {
             skinsButton.onClick.AddListener(OpenSkinsMenu);
+        }
+
+        // No Thanks düyməsi basılanda birbaşa GameOver-ə keç
+        if (noThanksBtn != null)
+            noThanksBtn.onClick.AddListener(CloseSecondChanceAndShowGameOver);
+
+        // Ulduzla davam etmə düyməsi
+        if (useStarBtn != null)
+        {
+            useStarBtn.onClick.RemoveAllListeners(); // Təhlükəsizlik üçün əvvəlkiləri sil
+            useStarBtn.onClick.AddListener(HandleContinueButton); // Yeni funksiyanı bağla
         }
     }
 
@@ -180,7 +195,6 @@ public class GameManager : MonoBehaviour
 
             Destroy(hit.collider.gameObject);
             currentBall = null;
-            hasScoredOnce = true;
 
             speedDirection *= -1;
             currentSpeed += 2.5f;
@@ -245,22 +259,68 @@ public class GameManager : MonoBehaviour
 
     IEnumerator GameOver()
     {
-        if (!hasScoredOnce)
+        LoseWiggle.Instance.PlayLoseAnimation();
+        CameraShake.Instance.ShakeCamera(1.1f, 0.5f);
+
+        yield return new WaitForSecondsRealtime(0.5f);
+
+        if (secondChancePanel != null)
         {
-            CameraShake.Instance.ShakeCamera(1.1f, 0.3f);
-            LoseWiggle.Instance.PlayLoseAnimation();
-            yield return new WaitForSeconds(0.3f);
-            ResetGameSoft();
+            Time.timeScale = 0f;
+            isSettingsOpen = true;
+
+            // ⭐ BURANI DİQQƏTLƏ YENİLƏ:
+            SecondChanceTimer timerScript = secondChancePanel.GetComponent<SecondChanceTimer>();
+            if (timerScript != null)
+            {
+                timerScript.canStart = true; // İcazəni ver
+                secondChancePanel.SetActive(true); // Paneli aç (OnEnable tetiklenecek)
+            }
         }
         else
         {
-            LoseWiggle.Instance.PlayLoseAnimation();
-            CameraShake.Instance.ShakeCamera(1.1f, 0.5f);
-
-            // Popup açılmazdan əvvəl bir az gözlə
-            yield return new WaitForSecondsRealtime(0.5f);
             GameOverPopUp();
         }
+    }
+
+    public void CloseSecondChanceAndShowGameOver()
+    {
+        if (secondChancePanel != null)
+            secondChancePanel.SetActive(false);
+
+        // İndi əsl uduzma panelini çağırırıq
+        GameOverPopUp();
+    }
+
+    public void ContinueGame(bool useLife)
+    {
+        if (useLife)
+        {
+            // Əgər oyunçunun ehtiyatda canı (Life) varsa
+            if (LifeManager.Instance != null && LifeManager.Instance.SpendLife())
+            {
+                ResumeFromSecondChance();
+            }
+            else
+            {
+                // Canı yoxdursa, ulduzla almaq təklifi çıxa bilər (opsional)
+                Debug.Log("Canınız bitib!");
+            }
+        }
+    }
+
+    // Oyunu qaldığı yerdən davam etdirən köməkçi funksiya
+    private void ResumeFromSecondChance()
+    {
+        secondChancePanel.SetActive(false);
+        Time.timeScale = 1f;
+        isSettingsOpen = false;
+
+        // Mövcud topları təmizləyib yenisini yaradırıq ki, çətinlik olmasın
+        foreach (GameObject b in GameObject.FindGameObjectsWithTag("Ball"))
+            Destroy(b);
+
+        Invoke(nameof(SpawnBall), 0.2f);
     }
 
     void ResetGameSoft()
@@ -271,7 +331,6 @@ public class GameManager : MonoBehaviour
             Destroy(b);
         currentSpeed = FirstSpeed;
         speedDirection = Vector3.forward;
-        hasScoredOnce = false;
         Invoke(nameof(SpawnBall), 0.15f);
     }
 
@@ -303,8 +362,7 @@ public class GameManager : MonoBehaviour
         gameoverPOPUP.SetActive(true);
         StartCoroutine(Animate(true));
 
-        // ⭐ Zamanı dayandır ki, arxada oyun davam etməsin
-        // Amma animasiyanın işləməsi üçün Coroutine-də 'WaitForSecondsRealtime' istifadə etməliyik
+        // Zamanı dayandırmağı unscaled animasiyadan sonraya saxlayırıq
         StartCoroutine(FreezeTimeDelayed());
     }
 
@@ -331,6 +389,7 @@ public class GameManager : MonoBehaviour
             // ⭐ Time.timeScale-dən asılı olmaması üçün 'unscaledDeltaTime'
             t += Time.unscaledDeltaTime;
             float p = t / animDuration;
+
             float curveValue = popupCurve.Evaluate(p);
 
             if (canvasGroup != null)
@@ -360,6 +419,29 @@ public class GameManager : MonoBehaviour
         if (SkinsManager.Instance != null)
         {
             SkinsManager.Instance.OpenSkins();
+        }
+    }
+
+    public void HandleContinueButton()
+    {
+        // 1. Əgər oyunçunun hazırda canı varsa, birini işlət və davam et
+        if (LifeManager.Instance != null && LifeManager.Instance.currentLives > 0)
+        {
+            LifeManager.Instance.SpendLife();
+            ResumeFromSecondChance();
+            Debug.Log("Can istifadə edildi.");
+        }
+        // 2. Canı yoxdursa, ulduzla 5 can al, birini dərhal işlət və davam et
+        else if (StarManager.Instance != null && StarManager.Instance.SpendStars(50))
+        {
+            LifeManager.Instance.AddLives(5); // 5 can alırıq
+            LifeManager.Instance.SpendLife(); // Birini indi istifadə edirik (4-ü qalır)
+            ResumeFromSecondChance();
+            Debug.Log("5 can alındı və biri istifadə edildi.");
+        }
+        else
+        {
+            Debug.Log("Nə can var, nə də kifayət qədər ulduz!");
         }
     }
 }

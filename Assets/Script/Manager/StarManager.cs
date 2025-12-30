@@ -37,6 +37,7 @@ public class StarManager : MonoBehaviour
 
         stars -= amount;
         PlayerPrefs.SetInt("Stars", stars);
+        PlayerPrefs.Save(); // Mütləq yadda saxla
 
         if (StarUI.Instance != null)
             StarUI.Instance.UpdateUI();
