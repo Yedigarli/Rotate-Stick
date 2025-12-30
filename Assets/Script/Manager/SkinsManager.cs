@@ -45,24 +45,51 @@ public class SkinsManager : MonoBehaviour
 
     public void SelectSkin(SkinData skin)
     {
-        // ... (mövcud satınalma kodların olduğu kimi qalır)
+        if (skin == null)
+            return;
 
-        // 1. Seçimi yadda saxla
+        string skinKey = "Skin_" + skin.skinID;
+        // Skin artıq açıqdırsa və ya default olaraq açıqdırsa (1 = açıq, 0 = bağlı)
+        bool isUnlocked = PlayerPrefs.GetInt(skinKey, skin.unlockedByDefault ? 1 : 0) == 1;
+
+        if (isUnlocked)
+        {
+            // SEÇMƏK MƏNTİQİ
+            CompleteSelection(skin);
+        }
+        else
+        {
+            // SATINALMA MƏNTİQİ
+            if (StarManager.Instance != null && StarManager.Instance.SpendStars(skin.price))
+            {
+                // Kilidi aç və yadda saxla
+                PlayerPrefs.SetInt(skinKey, 1);
+                PlayerPrefs.Save();
+
+                // Seçimi tamamla
+                CompleteSelection(skin);
+            }
+            else
+            {
+                // Bura bir "No Stars" animasiyası və ya səs əlavə edə bilərsən
+            }
+        }
+    }
+
+    // Seçimi tətbiq edən köməkçi funksiya
+    private void CompleteSelection(SkinData skin)
+    {
         PlayerPrefs.SetString("SelectedSkin", skin.skinID);
         PlayerPrefs.Save();
 
-        // 2. Səhnədəki Ayını tap və dərhal dəyiş (Həm Menu, həm Game üçün)
+        // Səhnədəki vizualı dəyiş
         SkinApplier sceneApplier = FindFirstObjectByType<SkinApplier>();
         if (sceneApplier != null)
-        {
             sceneApplier.ApplySkin(skin);
-        }
 
-        // 3. Düymələri yenilə
+        // Bütün düymələrin rənglərini/kilid xassələrini yenilə
         foreach (SkinButton btn in allButtons)
-        {
             btn.UpdateUI();
-        }
     }
 
     public void OpenSkins()

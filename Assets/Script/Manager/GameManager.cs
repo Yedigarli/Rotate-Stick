@@ -306,7 +306,6 @@ public class GameManager : MonoBehaviour
             else
             {
                 // Canı yoxdursa, ulduzla almaq təklifi çıxa bilər (opsional)
-                Debug.Log("Canınız bitib!");
             }
         }
     }

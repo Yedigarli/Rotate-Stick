@@ -55,36 +55,34 @@ public class SkinButton : MonoBehaviour
         if (skin == null)
             return;
 
-        // PlayerPrefs-dən ən son seçimi dərhal oxu
+        // PlayerPrefs-dən kilid vəziyyətini oxu
         bool unlocked =
             PlayerPrefs.GetInt("Skin_" + skin.skinID, skin.unlockedByDefault ? 1 : 0) == 1;
         string selectedID = PlayerPrefs.GetString("SelectedSkin", "");
 
         if (!unlocked)
         {
+            // KİLİDLİ HAL
             priceContainer.SetActive(true);
             lockIcon.SetActive(true);
             priceText.text = skin.price.ToString();
-            buttonBg.color = new Color(0.2f, 0.2f, 0.2f, 0.8f);
-            icon.color = Color.black;
-            StopScaleAnim();
+            buttonBg.color = new Color(0.2f, 0.2f, 0.2f, 0.8f); // Tünd rəng
+            icon.color = Color.black; // Top qara görünsün
         }
         else
         {
+            // AÇIQ HAL
             priceContainer.SetActive(false);
             lockIcon.SetActive(false);
             icon.color = Color.white;
 
-            // Debug ataq ki, kodun bura girdiyini konsolda görək
             if (selectedID == skin.skinID)
             {
-                buttonBg.color = selectedColor;
-                StartScaleAnim();
+                buttonBg.color = selectedColor; // Seçili rəng (məs: Sarı)
             }
             else
             {
-                buttonBg.color = unlockedColor;
-                StopScaleAnim();
+                buttonBg.color = unlockedColor; // Sadəcə açıq olan rəng (məs: Boz)
             }
         }
     }
