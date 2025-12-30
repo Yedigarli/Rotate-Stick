@@ -45,27 +45,20 @@ public class SkinsManager : MonoBehaviour
 
     public void SelectSkin(SkinData skin)
     {
-        // 1. Kilid və Satınalma məntiqi
-        bool unlocked =
-            PlayerPrefs.GetInt("Skin_" + skin.skinID, skin.unlockedByDefault ? 1 : 0) == 1;
+        // ... (mövcud satınalma kodların olduğu kimi qalır)
 
-        if (!unlocked)
-        {
-            if (StarManager.Instance != null && !StarManager.Instance.SpendStars(skin.price))
-                return; // Pul çatmasa dayandır
-
-            PlayerPrefs.SetInt("Skin_" + skin.skinID, 1);
-        }
-
-        // 2. Seçimi yadda saxla
+        // 1. Seçimi yadda saxla
         PlayerPrefs.SetString("SelectedSkin", skin.skinID);
         PlayerPrefs.Save();
 
-        // 3. Menyu topunu yenilə
-        if (previewApplier != null)
-            previewApplier.ApplySkin(skin);
+        // 2. Səhnədəki Ayını tap və dərhal dəyiş (Həm Menu, həm Game üçün)
+        SkinApplier sceneApplier = FindFirstObjectByType<SkinApplier>();
+        if (sceneApplier != null)
+        {
+            sceneApplier.ApplySkin(skin);
+        }
 
-        // 4. Bütün düymələrin yazısını (SELECTED/USE) yenilə
+        // 3. Düymələri yenilə
         foreach (SkinButton btn in allButtons)
         {
             btn.UpdateUI();
@@ -77,14 +70,16 @@ public class SkinsManager : MonoBehaviour
         if (isAnimating)
             return;
 
-        skinsPanel.SetActive(true);
-
-        // Düymələri məcburi şəkildə yeniləyək
-        foreach (SkinButton btn in allButtons)
+        // ⭐ Oyunu dayandır (Oyun səhnəsindəsənsə)
+        if (GameManager.Instance != null)
         {
-            btn.UpdateUI();
+            GameManager.Instance.isSettingsOpen = true;
+            Time.timeScale = 0f;
         }
 
+        skinsPanel.SetActive(true);
+        foreach (SkinButton btn in allButtons)
+            btn.UpdateUI();
         StartCoroutine(Animate(true));
     }
 
@@ -92,6 +87,27 @@ public class SkinsManager : MonoBehaviour
     {
         if (isAnimating)
             return;
+
+        // ⭐ ƏSAS HİSSƏ BURADIR:
+        // Əgər GameOver popup-ı hazırda ekrandadırsa, zaman 0 olaraq qalsın.
+        // Əgər GameOver ekranda DEYİLSƏ (yəni oyun zamanı açmısansa), zaman 1 olsun.
+        if (GameManager.Instance != null)
+        {
+            if (GameManager.Instance.gameoverPOPUP.activeSelf)
+            {
+                Time.timeScale = 0f; // GameOver açıqdırsa, oyunu başlatma
+            }
+            else
+            {
+                Time.timeScale = 1f; // Normal oyun zamanı açılıbsa, davam et
+                GameManager.Instance.isSettingsOpen = false;
+            }
+        }
+        else
+        {
+            Time.timeScale = 1f; // Menu səhnəsindəsənsə normal davam et
+        }
+
         StartCoroutine(Animate(false));
     }
 

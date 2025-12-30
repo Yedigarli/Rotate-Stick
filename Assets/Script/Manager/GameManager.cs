@@ -2,6 +2,8 @@ using System.Collections;
 using MaskTransitions;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class GameManager : MonoBehaviour
 {
@@ -34,6 +36,21 @@ public class GameManager : MonoBehaviour
     private GameObject currentBall;
     private int comboCount = 0;
 
+    [Header("GameOver")]
+    public GameObject gameoverPOPUP;
+    public Button resStartBTN;
+    public Button settingBTN;
+    public Button instaBTN;
+    public Button skinsButton;
+    public Button menuBTN;
+    public float animDuration = 0.25f;
+    private bool isAnimating;
+    public CanvasGroup canvasGroup;
+    public AnimationCurve popupCurve = AnimationCurve.EaseInOut(0, 0, 1, 1);
+
+    [Header("Skins Panel Setup")]
+    public GameObject skinsUIObject; // Bura Hierarchy-dəki SkinsUI-ni atacaqsan
+
     // ⭐ Topun HDR rəngi üçün dəyişən
     [ColorUsage(showAlpha: true, hdr: true)]
     public Color ballGlowColor = Color.white;
@@ -45,14 +62,45 @@ public class GameManager : MonoBehaviour
     {
         Instance = this;
         ApplyGlobalColors();
+
+        if (gameoverPOPUP != null)
+            gameoverPOPUP.SetActive(false);
+        if (canvasGroup != null)
+            canvasGroup.alpha = 0;
+
         FirstSpeed = PlayerPrefs.GetFloat("firstspeed", 90);
         currentSpeed = FirstSpeed;
         Invoke(nameof(SpawnBall), 0.1f);
+
+        // --- DÜYMƏLƏRİN FUNKSİYALARI ---
+        resStartBTN.onClick.AddListener(() =>
+        {
+            Time.timeScale = 1f;
+            TransitionManager.Instance.LoadLevel("Game");
+        });
+
+        menuBTN.onClick.AddListener(() =>
+        {
+            Time.timeScale = 1f;
+            TransitionManager.Instance.LoadLevel("Menu");
+        });
+
+        // Skins düyməsinə basanda menyunu aç
+        if (skinsButton != null)
+        {
+            skinsButton.onClick.AddListener(OpenSkinsMenu);
+        }
+
+        // Skins düyməsinə basanda SkinsManager-dəki OpenSkins funksiyasını çağır
+        if (skinsButton != null)
+        {
+            skinsButton.onClick.AddListener(OpenSkinsMenu);
+        }
     }
 
     private void Update()
     {
-        if (isSettingsOpen)
+        if (isSettingsOpen || Time.timeScale == 0)
             return;
 
         if (target != null)
@@ -208,8 +256,10 @@ public class GameManager : MonoBehaviour
         {
             LoseWiggle.Instance.PlayLoseAnimation();
             CameraShake.Instance.ShakeCamera(1.1f, 0.5f);
-            yield return new WaitForSeconds(0.5f);
-            TransitionManager.Instance.LoadLevel("Game");
+
+            // Popup açılmazdan əvvəl bir az gözlə
+            yield return new WaitForSecondsRealtime(0.5f);
+            GameOverPopUp();
         }
     }
 
@@ -242,6 +292,74 @@ public class GameManager : MonoBehaviour
             SpriteRenderer playerSr = player.GetComponent<SpriteRenderer>();
             if (playerSr != null)
                 playerSr.color = playerGlowColor;
+        }
+    }
+
+    private void GameOverPopUp()
+    {
+        if (isAnimating)
+            return;
+
+        gameoverPOPUP.SetActive(true);
+        StartCoroutine(Animate(true));
+
+        // ⭐ Zamanı dayandır ki, arxada oyun davam etməsin
+        // Amma animasiyanın işləməsi üçün Coroutine-də 'WaitForSecondsRealtime' istifadə etməliyik
+        StartCoroutine(FreezeTimeDelayed());
+    }
+
+    IEnumerator FreezeTimeDelayed()
+    {
+        yield return new WaitForSecondsRealtime(animDuration);
+        Time.timeScale = 0f;
+    }
+
+    IEnumerator Animate(bool open)
+    {
+        isAnimating = true;
+        float t = 0f;
+
+        float startA = open ? 0 : 1;
+        float endA = open ? 1 : 0;
+
+        // Popup kiçikdən böyüyə doğru açılsın
+        Vector3 startS = open ? Vector3.one * 0.5f : Vector3.one;
+        Vector3 endS = open ? Vector3.one : Vector3.one * 0.5f;
+
+        while (t < animDuration)
+        {
+            // ⭐ Time.timeScale-dən asılı olmaması üçün 'unscaledDeltaTime'
+            t += Time.unscaledDeltaTime;
+            float p = t / animDuration;
+            float curveValue = popupCurve.Evaluate(p);
+
+            if (canvasGroup != null)
+                canvasGroup.alpha = Mathf.Lerp(startA, endA, p);
+            gameoverPOPUP.transform.localScale = Vector3.Lerp(startS, endS, curveValue);
+
+            yield return null;
+        }
+
+        if (canvasGroup != null)
+            canvasGroup.alpha = endA;
+        gameoverPOPUP.transform.localScale = endS;
+
+        if (!open)
+            gameoverPOPUP.SetActive(false);
+        isAnimating = false;
+    }
+
+    public void OpenSkinsMenu()
+    {
+        if (isAnimating)
+            return;
+
+        isSettingsOpen = true; // Bunu əlavə etdik
+        Time.timeScale = 0f;
+
+        if (SkinsManager.Instance != null)
+        {
+            SkinsManager.Instance.OpenSkins();
         }
     }
 }
