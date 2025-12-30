@@ -9,10 +9,11 @@ public class SecondChanceTimer : MonoBehaviour
     public TMP_Text timerText;
     public float duration = 5f;
     public TMP_Text buttonText;
+    public CanvasGroup canvasGroup;
 
-    [Header("Colors")]
-    public Color startColor = new Color(0.18f, 0.8f, 0.44f); // Yaşıl (#2ECC71)
-    public Color endColor = new Color(0.9f, 0.2f, 0.2f); // Qırmızı
+    [Header("Settings")]
+    public float animDuration = 0.3f;
+    public AnimationCurve openCurve = AnimationCurve.EaseInOut(0, 0, 1, 1);
 
     [HideInInspector]
     public bool canStart = false;
@@ -26,8 +27,8 @@ public class SecondChanceTimer : MonoBehaviour
         }
 
         UpdateButtonStyle();
-
         StopAllCoroutines();
+        StartCoroutine(AnimatePanel(true));
         StartCoroutine(CountdownRoutine());
     }
 
@@ -36,11 +37,8 @@ public class SecondChanceTimer : MonoBehaviour
         int currentStars = PlayerPrefs.GetInt("Stars", 0);
         int currentLives = PlayerPrefs.GetInt("PlayerLives", 0);
 
-        if (GameManager.Instance.useStarBtn != null && buttonText != null)
+        if (GameManager.Instance != null && GameManager.Instance.useStarBtn != null)
         {
-            // Düymənin ana rəngini yaşıl edək
-            GameManager.Instance.useStarBtn.image.color = startColor;
-
             if (currentLives > 0)
             {
                 buttonText.text = "USE 1 LIFE";
@@ -50,36 +48,16 @@ public class SecondChanceTimer : MonoBehaviour
             {
                 buttonText.text = "BUY 5 LIVES (50 Stars)";
                 GameManager.Instance.useStarBtn.interactable = (currentStars >= 50);
-
-                // Əgər pulu çatmırsa, düyməni bir az şəffaf (solğun) edək
-                if (currentStars < 50)
-                    GameManager.Instance.useStarBtn.image.color = new Color(
-                        startColor.r,
-                        startColor.g,
-                        startColor.b,
-                        0.5f
-                    );
             }
         }
     }
 
     private void Update()
     {
-        // 1. "Use Star" düyməsinin böyüyüb-balacalanması (Pulse)
-        if (GameManager.Instance != null && GameManager.Instance.useStarBtn != null)
+        if (GameManager.Instance.useStarBtn != null)
         {
             float scale = 1f + Mathf.Sin(Time.unscaledTime * 6f) * 0.05f;
             GameManager.Instance.useStarBtn.transform.localScale = new Vector3(scale, scale, 1f);
-        }
-
-        // 2. "No Thanks" yazısının yanıb-sönməsi (Fade)
-        if (GameManager.Instance != null && GameManager.Instance.noThanksBtn != null)
-        {
-            float alpha = 0.5f + (Mathf.Sin(Time.unscaledTime * 4f) + 1f) / 4f; // 0.5 - 1.0 arası
-            TMP_Text noThanksText =
-                GameManager.Instance.noThanksBtn.GetComponentInChildren<TMP_Text>();
-            if (noThanksText != null)
-                noThanksText.color = new Color(1, 1, 1, alpha);
         }
     }
 
@@ -89,36 +67,49 @@ public class SecondChanceTimer : MonoBehaviour
         while (currentTime > 0)
         {
             currentTime -= Time.unscaledDeltaTime;
-
             if (timerFillImage != null)
-            {
                 timerFillImage.fillAmount = currentTime / duration;
-                // Vaxt azaldıqca dairənin rəngi yaşıldan qırmızıya keçir
-                timerFillImage.color = Color.Lerp(endColor, startColor, currentTime / duration);
-            }
-
             if (timerText != null)
                 timerText.text = Mathf.CeilToInt(currentTime).ToString();
+            yield return null;
+        }
+
+        // 1. Əvvəlcə animasiyanın bitməsini gözləyirik
+        yield return StartCoroutine(AnimatePanel(false));
+
+        // 2. İndi GameManager-ə xəbər veririk.
+        // GameManager həm bu paneli söndürəcək, həm də yenisini açacaq.
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.CloseSecondChanceAndShowGameOver();
+        }
+    }
+
+    IEnumerator AnimatePanel(bool opening)
+    {
+        float t = 0;
+        Vector3 startS = opening ? Vector3.zero : Vector3.one;
+        Vector3 endS = opening ? Vector3.one : Vector3.zero;
+        float startA = opening ? 0 : 1;
+        float endA = opening ? 1 : 0;
+
+        while (t < animDuration)
+        {
+            t += Time.unscaledDeltaTime;
+            float p = t / animDuration;
+            float curveValue = openCurve.Evaluate(p);
+
+            transform.localScale = Vector3.Lerp(startS, endS, curveValue);
+            if (canvasGroup != null)
+                canvasGroup.alpha = Mathf.Lerp(startA, endA, p);
 
             yield return null;
         }
-        TimeFinished();
-    }
 
-    void TimeFinished()
-    {
-        canStart = false;
-        if (GameManager.Instance != null)
-            GameManager.Instance.CloseSecondChanceAndShowGameOver();
-    }
+        transform.localScale = endS;
+        if (canvasGroup != null)
+            canvasGroup.alpha = endA;
 
-    private void OnDisable()
-    {
-        canStart = false;
-        // Düymənin ölçüsünü normala qaytarırıq ki, digər panellərdə eybəcər qalmasın
-        if (GameManager.Instance != null && GameManager.Instance.useStarBtn != null)
-            GameManager.Instance.useStarBtn.transform.localScale = Vector3.one;
-
-        StopAllCoroutines();
+        // BURADAKI SetActive(false) SƏTRİNİ SİLDİK!
     }
 }

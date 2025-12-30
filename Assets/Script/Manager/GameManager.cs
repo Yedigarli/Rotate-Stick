@@ -283,12 +283,14 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    // GameManager.cs daxilində belə olmalıdır:
     public void CloseSecondChanceAndShowGameOver()
     {
+        // Paneli burada söndürürük ki, skript işini tamamlamış olsun
         if (secondChancePanel != null)
             secondChancePanel.SetActive(false);
 
-        // İndi əsl uduzma panelini çağırırıq
+        // Əsas GameOver popup-ını açırıq
         GameOverPopUp();
     }
 
