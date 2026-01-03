@@ -9,6 +9,7 @@ public class MainMenuManager : MonoBehaviour
     [Header("UI & Appearance")]
     [ColorUsage(showAlpha: true, hdr: true)]
     public TMP_Text levelText;
+    public TMP_Text bestScoreText;
 
     // ⭐ Topun HDR rəngi üçün dəyişən
     [ColorUsage(showAlpha: true, hdr: true)]
@@ -44,6 +45,10 @@ public class MainMenuManager : MonoBehaviour
         int level = PlayerPrefs.GetInt("level", 1);
         if (levelText != null)
             levelText.text = "Level: " + level.ToString();
+
+        int bestScore = PlayerPrefs.GetInt("BestScore", 0);
+        if (bestScoreText != null)
+            bestScoreText.text = bestScore.ToString();
 
         if (StarUI.Instance != null)
             StarUI.Instance.UpdateUI();

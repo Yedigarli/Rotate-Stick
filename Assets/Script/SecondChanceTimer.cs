@@ -15,6 +15,9 @@ public class SecondChanceTimer : MonoBehaviour
     public float animDuration = 0.3f;
     public AnimationCurve openCurve = AnimationCurve.EaseInOut(0, 0, 1, 1);
 
+    public Button noThanksButton; // Inspector-da No Thanks düyməsini bura at
+    public float noThanksDelay = 1.5f; // Neçə saniyə sonra aktiv olsun?
+
     [HideInInspector]
     public bool canStart = false;
 
@@ -26,10 +29,49 @@ public class SecondChanceTimer : MonoBehaviour
             return;
         }
 
+        // --- No Thanks Düyməsini Hazırla ---
+        if (noThanksButton != null)
+        {
+            noThanksButton.interactable = false;
+        }
+
         UpdateButtonStyle();
-        StopAllCoroutines();
+        StopAllCoroutines(); // Köhnə bütün işləri dayandır
+
         StartCoroutine(AnimatePanel(true));
         StartCoroutine(CountdownRoutine());
+        StartCoroutine(EnableNoThanksAfterDelay()); // Düyməni aktiv edən taymer
+    }
+
+    IEnumerator EnableNoThanksAfterDelay()
+    {
+        // Realtime istifadə edirik çünki Time.timeScale = 0 ola bilər
+        yield return new WaitForSecondsRealtime(noThanksDelay);
+
+        if (noThanksButton != null)
+        {
+            noThanksButton.interactable = true;
+
+            // Aktiv olduğunu bildirmək üçün kiçik sıçrayış effekti
+            noThanksButton.transform.localScale = Vector3.one * 1.1f;
+            float t = 0;
+            while (t < 0.1f)
+            {
+                t += Time.unscaledDeltaTime;
+                yield return null;
+            }
+            noThanksButton.transform.localScale = Vector3.one;
+        }
+    }
+
+    private void Update()
+    {
+        // Təhlükəsizlik: Null check əlavə edildi
+        if (GameManager.Instance != null && GameManager.Instance.useStarBtn != null)
+        {
+            float scale = 1f + Mathf.Sin(Time.unscaledTime * 6f) * 0.05f;
+            GameManager.Instance.useStarBtn.transform.localScale = new Vector3(scale, scale, 1f);
+        }
     }
 
     void UpdateButtonStyle()
@@ -49,15 +91,6 @@ public class SecondChanceTimer : MonoBehaviour
                 buttonText.text = "BUY 5 LIVES (50 Stars)";
                 GameManager.Instance.useStarBtn.interactable = (currentStars >= 50);
             }
-        }
-    }
-
-    private void Update()
-    {
-        if (GameManager.Instance.useStarBtn != null)
-        {
-            float scale = 1f + Mathf.Sin(Time.unscaledTime * 6f) * 0.05f;
-            GameManager.Instance.useStarBtn.transform.localScale = new Vector3(scale, scale, 1f);
         }
     }
 

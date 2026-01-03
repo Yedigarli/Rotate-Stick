@@ -4,10 +4,10 @@ public class Ball : MonoBehaviour
 {
     public BallType ballType;
 
-    [Header("Asanlaşdırılmış Hərəkət")]
+    [Header("Movement")]
     public bool isMoving;
-    public float moveSpeed = 1.5f; // Sürəti azaltdıq
-    public float moveRange = 0.8f; // Hərəkət məsafəsi
+    public float moveSpeed = 1.5f;
+    public float moveRange = 0.8f;
 
     private Vector3 startPos;
     private float randomOffset;
@@ -15,13 +15,12 @@ public class Ball : MonoBehaviour
     private void Start()
     {
         startPos = transform.position;
-        // Bütün toplar eyni anda eyni tərəfə getməsin deyə random başlanğıc
         randomOffset = Random.Range(0f, 2f * Mathf.PI);
     }
 
     private void Update()
     {
-        // 1. Kiçik nəfəs alma effekti (Scale)
+        // Pulse (Nəfəs alma) animasiyası - Oyunu canlı göstərən kiçik detallardır
         float pulse = Mathf.Sin(Time.time * 3f) * 0.05f;
         transform.localScale = Vector3.one * (0.27f + pulse);
     }

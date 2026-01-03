@@ -59,13 +59,22 @@ public class GameManager : MonoBehaviour
     [ColorUsage(showAlpha: true, hdr: true)]
     public Color ballGlowColor = Color.white;
 
+    [Header("Combo Glow Settings")]
+    [ColorUsage(showAlpha: true, hdr: true)]
+    public Color baseBallColor = Color.white; // Combo 0 olanda topun rəngi
+
     [ColorUsage(showAlpha: true, hdr: true)]
     public Color playerGlowColor = Color.cyan; // Çubuğun parıltı rəngi
+
+    [Header("GameOver UI")]
+    public TMP_Text levelProgressPercentText; // Inspector-da bura yeni yaratdığın mətni at
 
     private void Awake()
     {
         Instance = this;
         ApplyGlobalColors();
+
+        levelProgressPercentText.enabled = false;
 
         if (gameoverPOPUP != null)
             gameoverPOPUP.SetActive(false);
@@ -154,36 +163,23 @@ public class GameManager : MonoBehaviour
         if (hit.collider != null)
         {
             Ball ball = hit.collider.GetComponent<Ball>();
-            float distToCenter = Vector2.Distance(hit.point, hit.collider.transform.position);
-
-            // PERFECT limiti
+            Vector3 hitPos = hit.collider.transform.position;
+            float distToCenter = Vector2.Distance(hit.point, hitPos);
             bool isPerfect = distToCenter < 0.18f;
-
-            Color perfectColor = LevelManager.Instance.perfectColor;
-            Color niceColor = LevelManager.Instance.niceColor;
 
             if (isPerfect)
             {
-                // PERFECT MƏNTİQİ
                 comboCount++;
-                LevelManager.Instance.ShowStatusByType("Perfect", comboCount);
-                LevelManager.Instance.ShowCombo(comboCount, LevelManager.Instance.perfectColor);
-
-                CreateFloatingText(hit.collider.transform.position, "+2", perfectColor);
-                PlayBallEffect(hit.collider.transform.position, perfectColor);
-                LevelManager.Instance.AddProgress(2); // Perfect olanda 2 xal
+                CreateFloatingText(hitPos, "PERFECT!", ballGlowColor, comboCount);
+                PlayBallEffect(hitPos, ballGlowColor);
+                LevelManager.Instance.AddProgress(2);
             }
             else
             {
-                // NICE MƏNTİQİ
                 comboCount = 0;
-                LevelManager.Instance.ShowStatusByType("Nice");
-                LevelManager.Instance.ShowCombo(0, Color.white);
-
-                CreateFloatingText(hit.collider.transform.position, "+1", Color.white);
-                PlayBallEffect(hit.collider.transform.position, Color.white);
-
-                LevelManager.Instance.AddProgress(1); // Normal vuruşda 1 xal
+                CreateFloatingText(hitPos, "+1", Color.white);
+                PlayBallEffect(hitPos, Color.white);
+                LevelManager.Instance.AddProgress(1);
             }
 
             // --- ULDUZ ARTIMI ---
@@ -193,39 +189,92 @@ public class GameManager : MonoBehaviour
                     StarManager.Instance.AddStar(1);
             }
 
+            // Obyekti dərhal yox edirik və referansı təmizləyirik
             Destroy(hit.collider.gameObject);
             currentBall = null;
 
+            // İstiqaməti dəyiş və sürəti artır
             speedDirection *= -1;
             currentSpeed += 2.5f;
+
+            // Yeni topu bir az gecikmə ilə yarat
             Invoke(nameof(SpawnBall), 0.05f);
         }
         else
         {
+            // Heç nəyə dəymədisə - GAME OVER
             StartCoroutine(GameOver());
         }
     }
 
-    // --- DİGƏR FUNKSİYALAR (DƏYİŞMƏDİ) ---
-
-    void CreateFloatingText(Vector3 pos, string text, Color color)
+    void CreateFloatingText(Vector3 pos, string text, Color color, int combo = 0)
     {
         if (floatingTextPrefab == null)
             return;
+
         GameObject fText = Instantiate(floatingTextPrefab, pos, Quaternion.identity);
-        Canvas mainCanvas = FindFirstObjectByType<Canvas>();
-        if (mainCanvas != null && fText.GetComponent<RectTransform>() != null)
-        {
-            fText.transform.SetParent(mainCanvas.transform, false);
-            Vector2 screenPoint = Camera.main.WorldToScreenPoint(pos);
-            fText.transform.position = screenPoint;
-        }
+        fText.transform.SetParent(FindFirstObjectByType<Canvas>().transform, false);
+        fText.transform.position = Camera.main.WorldToScreenPoint(pos);
+
         TMP_Text tmp = fText.GetComponentInChildren<TMP_Text>();
         if (tmp != null)
         {
+            if (text == "PERFECT!")
+            {
+                if (combo >= 10)
+                    text = "ULTIMATE!!";
+                else if (combo >= 5)
+                    text = "UNSTOPPABLE!";
+                else if (combo >= 3)
+                    text = "AMAZING!";
+            }
             tmp.text = text;
             tmp.color = color;
         }
+
+        // LeanTween əvəzinə Coroutine başlat
+        StartCoroutine(AnimateFloatingText(fText));
+    }
+
+    IEnumerator AnimateFloatingText(GameObject obj)
+    {
+        float duration = 0.8f;
+        float elapsed = 0f;
+        Vector3 startScale = Vector3.zero;
+        Vector3 targetScale = Vector3.one;
+        Vector3 startPos = obj.transform.position;
+        CanvasGroup cg = obj.GetComponent<CanvasGroup>();
+
+        while (elapsed < duration)
+        {
+            // Zaman dayansa belə animasiya işləsin deyə 'unscaledDeltaTime'
+            elapsed += Time.unscaledDeltaTime;
+            float progress = elapsed / duration;
+
+            // 1. Pop/Böyümə effekti (ilk 30%-də sürətlə böyüyür)
+            if (progress < 0.3f)
+                obj.transform.localScale = Vector3.Lerp(
+                    startScale,
+                    targetScale * 1.3f,
+                    progress / 0.3f
+                );
+            else
+                obj.transform.localScale = Vector3.Lerp(
+                    targetScale * 1.3f,
+                    targetScale,
+                    (progress - 0.3f) / 0.7f
+                );
+
+            // 2. Yuxarı sürüşmə
+            obj.transform.position = startPos + new Vector3(0, progress * 120f, 0);
+
+            // 3. Şəffaflaşma (CanvasGroup lazımdır)
+            if (cg != null)
+                cg.alpha = 1f - Mathf.Pow(progress, 2); // Sona doğru daha sürətli itir
+
+            yield return null;
+        }
+        Destroy(obj);
     }
 
     void SpawnBall()
@@ -233,21 +282,51 @@ public class GameManager : MonoBehaviour
         if (currentBall != null || GameObject.FindGameObjectsWithTag("Ball").Length > 0)
             return;
 
+        // ... (Spawn mövqeyi kodları dəyişmir) ...
         Vector2 pos2D = Random.insideUnitCircle.normalized * radius;
         Vector3 spawnPos = new Vector3(
             target.transform.position.x + pos2D.x,
             target.transform.position.y + pos2D.y,
             0f
         );
-
         GameObject prefabToSpawn =
             (Random.value < starBallChance) ? starBallPrefab : normalBallPrefab;
         currentBall = Instantiate(prefabToSpawn, spawnPos, Quaternion.identity);
 
-        // --- TOPUN HDR RƏNGİNİ TƏTBİQ ET ---
         SpriteRenderer ballSr = currentBall.GetComponent<SpriteRenderer>();
         if (ballSr != null)
-            ballSr.color = ballGlowColor;
+        {
+            if (LevelManager.Instance != null)
+            {
+                // LevelManager-dəki mövcud rəngi birbaşa götürürük
+                baseBallColor = LevelManager.Instance.levelColors[
+                    (PlayerPrefs.GetInt("level", 1) - 1) % LevelManager.Instance.levelColors.Length
+                ];
+            }
+            float comboFactor = Mathf.Clamp01(comboCount / 10f);
+
+            // 2. Rəng keçidi (Lerp)
+            Color lerpedColor = Color.Lerp(baseBallColor, ballGlowColor, comboFactor);
+
+            // 3. PARLAMA GÜCÜ (Intensity) - Əsas sirr buradadır!
+            // Combo artdıqca rəngi 2-yə, 4-ə vuraraq onu HDR-da partladırıq
+            // Ekspozisiya (Exposure) artımı simulyasiyası:
+            float intensity = 1f + (comboFactor * 0.7f);
+
+            // HDR rəngini formalaşdırırıq
+            Color finalGlowColor = new Color(
+                lerpedColor.r * intensity,
+                lerpedColor.g * intensity,
+                lerpedColor.b * intensity,
+                lerpedColor.a
+            );
+
+            ballSr.color = finalGlowColor;
+        }
+
+        // Combo artdıqca top cüzi böyüyür (1.0-dan 1.2-yə qədər)
+        float scaleFactor = 1f + (Mathf.Clamp(comboCount, 0, 10) * 0.02f);
+        currentBall.transform.localScale = Vector3.one * scaleFactor;
 
         Ball ballScript = currentBall.GetComponent<Ball>();
         if (PlayerPrefs.GetInt("level", 1) > 5 && Random.value < 0.3f)
@@ -262,7 +341,14 @@ public class GameManager : MonoBehaviour
         LoseWiggle.Instance.PlayLoseAnimation();
         CameraShake.Instance.ShakeCamera(1.1f, 0.5f);
 
-        yield return new WaitForSecondsRealtime(0.5f);
+        yield return new WaitForSecondsRealtime(0.75f);
+
+        if (levelProgressPercentText != null && LevelManager.Instance != null)
+        {
+            levelProgressPercentText.enabled = true;
+            levelProgressPercentText.text =
+                LevelManager.Instance.GetCurrentLevelPercentage() + " COMPLETE";
+        }
 
         if (secondChancePanel != null)
         {
@@ -314,6 +400,7 @@ public class GameManager : MonoBehaviour
     private void ResumeFromSecondChance()
     {
         secondChancePanel.SetActive(false);
+        levelProgressPercentText.enabled = false;
         Time.timeScale = 1f;
         isSettingsOpen = false;
 
@@ -324,25 +411,54 @@ public class GameManager : MonoBehaviour
         Invoke(nameof(SpawnBall), 0.2f);
     }
 
-    void ResetGameSoft()
-    {
-        CancelInvoke();
-        currentBall = null;
-        foreach (GameObject b in GameObject.FindGameObjectsWithTag("Ball"))
-            Destroy(b);
-        currentSpeed = FirstSpeed;
-        speedDirection = Vector3.forward;
-        Invoke(nameof(SpawnBall), 0.15f);
-    }
-
     public void PlayBallEffect(Vector3 pos, Color ballColor)
     {
         if (ballParticlePrefab == null)
             return;
+
         GameObject effect = Instantiate(ballParticlePrefab, pos, Quaternion.identity);
-        var main = effect.GetComponent<ParticleSystem>().main;
-        main.startColor = ballGlowColor;
+        ParticleSystem ps = effect.GetComponent<ParticleSystem>();
+
+        if (ps != null)
+        {
+            var main = ps.main;
+            var emission = ps.emission;
+            var trails = ps.trails; // Əgər trail istifadə edirsənsə
+
+            // 1. Rəng və Parlaqlıq (Combo artdıqca HDR effektini simulyasiya edirik)
+            // Combo artdıqca rəng daha ağappaq (parlaq) olur
+            float intensity = Mathf.Clamp01(comboCount * 0.1f);
+            Color finalColor = Color.Lerp(ballColor, Color.white, intensity * 0.5f);
+            main.startColor = finalColor;
+
+            // 2. Sayı (Həddi aşmadan artırırıq: 15-dən 40-a qədər)
+            short count = (short)Mathf.Clamp(15 + (comboCount * 3), 15, 45);
+            emission.SetBurst(0, new ParticleSystem.Burst(0f, count));
+
+            // 3. Ömür və Sürət (Daha qısa ömür = daha kəskin vuruş hissi)
+            // Hissəciklər sürətlə çıxıb tez yox olduqda "impact" daha güclü hiss olunur
+            main.startLifetime = new ParticleSystem.MinMaxCurve(0.3f, 0.5f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(
+                8f + (comboCount * 0.4f),
+                12f + (comboCount * 0.4f)
+            );
+
+            // 4. Ölçü (Kiçik hissəciklər həmişə daha premium görünür)
+            float sizeFactor = Mathf.Clamp(0.15f + (comboCount * 0.01f), 0.15f, 0.3f);
+            main.startSize = sizeFactor;
+
+            ps.Play();
+        }
+
         Destroy(effect, 1f);
+
+        // 5. Peşəkar toxunuş: Kamera Titrəməsi (Screen Shake)
+        // Combo artdıqca titrəməni də cüzi artıraq
+        if (CameraShake.Instance != null)
+        {
+            float shakeAmount = 0.1f + (Mathf.Clamp(comboCount, 0, 10) * 0.02f);
+            CameraShake.Instance.ShakeCamera(shakeAmount, 0.15f);
+        }
     }
 
     private void OnValidate()
@@ -430,7 +546,7 @@ public class GameManager : MonoBehaviour
         {
             LifeManager.Instance.SpendLife();
             ResumeFromSecondChance();
-            Debug.Log("Can istifadə edildi.");
+            // Debug.Log("Can istifadə edildi.");
         }
         // 2. Canı yoxdursa, ulduzla 5 can al, birini dərhal işlət və davam et
         else if (StarManager.Instance != null && StarManager.Instance.SpendStars(50))
@@ -438,11 +554,16 @@ public class GameManager : MonoBehaviour
             LifeManager.Instance.AddLives(5); // 5 can alırıq
             LifeManager.Instance.SpendLife(); // Birini indi istifadə edirik (4-ü qalır)
             ResumeFromSecondChance();
-            Debug.Log("5 can alındı və biri istifadə edildi.");
+            // Debug.Log("5 can alındı və biri istifadə edildi.");
         }
         else
         {
-            Debug.Log("Nə can var, nə də kifayət qədər ulduz!");
+            // Debug.Log("Nə can var, nə də kifayət qədər ulduz!");
         }
+    }
+
+    public int GetComboCount()
+    {
+        return comboCount;
     }
 }

@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1e266c9a9d025b4795517277d23fbfb, type: 3}
   m_Name: Default
   m_EditorClassIdentifier: 
-  skinID: dddd
+  skinID: dsdadd
   sprite: {fileID: 133982719826790466, guid: 3503652dffb96844aae32c03fcc5cbdc, type: 3}
   menuScale: {x: 1, y: 1, z: 1}
   menuYOffset: 1.695
