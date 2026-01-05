@@ -15,7 +15,7 @@ MonoBehaviour:
   skinID: Bear
   sprite: {fileID: 133982719826790466, guid: 3503652dffb96844aae32c03fcc5cbdc, type: 3}
   menuScale: {x: 1, y: 1, z: 1}
-  menuYOffset: 1.413
+  menuYOffset: 0.2870001
   gameScale: {x: 1, y: 1, z: 1}
   gameYOffset: 0.289
   price: 0

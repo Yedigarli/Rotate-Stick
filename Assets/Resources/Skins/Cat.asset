@@ -15,7 +15,7 @@ MonoBehaviour:
   skinID: Cat
   sprite: {fileID: 643549736833298701, guid: b633e9c797e50674994e0f13d60391db, type: 3}
   menuScale: {x: 1, y: 1, z: 1}
-  menuYOffset: 1.371
+  menuYOffset: 0.238
   gameScale: {x: 1, y: 1, z: 1}
   gameYOffset: 0.242
   price: 40

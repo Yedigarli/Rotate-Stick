@@ -15,7 +15,7 @@ MonoBehaviour:
   skinID: Bear2
   sprite: {fileID: 5674382746468428814, guid: fc287092f6d91bb47bb8079019589ff5, type: 3}
   menuScale: {x: 1, y: 1, z: 1}
-  menuYOffset: 1.12
+  menuYOffset: 0
   gameScale: {x: 1, y: 1, z: 1}
   gameYOffset: -0.011
   price: 40
