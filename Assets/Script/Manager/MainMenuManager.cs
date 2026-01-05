@@ -9,7 +9,7 @@ public enum GameMode
 {
     Levels,
     Classic,
-} // Enum mütləq bura əlavə edilməlidir
+}
 
 public class MainMenuManager : MonoBehaviour
 {
@@ -22,7 +22,7 @@ public class MainMenuManager : MonoBehaviour
     public TMP_Text bestScoreText;
 
     [Header("Level Bar Elements")]
-    public GameObject levelBarContainer; // Barın özü
+    public GameObject levelBarContainer;
     public Image levelCircle;
     public Image nextLevelCircle;
     public Image progressBarFill;
@@ -45,11 +45,13 @@ public class MainMenuManager : MonoBehaviour
 
     [Header("HOP Style Mode Selection")]
     public GameMode currentMode = GameMode.Levels;
-    public RectTransform highlightBox; // Ağ seçim qutusu
-    public TMP_Text levelsText; // "LEVELS" yazısı
-    public TMP_Text classicText; // "CLASSIC" yazısı
-    public Vector2 levelsPos; // Highlight X: örnək -100
-    public Vector2 classicPos; // Highlight X: örnək 100
+    public RectTransform highlightBox;
+    public TMP_Text levelsText;
+    public TMP_Text classicText;
+
+    [Header("Stretch Compatible Mode Selection")]
+    public RectTransform levelsBtnRect;
+    public RectTransform classicBtnRect;
     public float slideSpeed = 10f;
 
     [ColorUsage(showAlpha: true, hdr: true)]
@@ -58,24 +60,29 @@ public class MainMenuManager : MonoBehaviour
     [ColorUsage(showAlpha: true, hdr: true)]
     public Color playerGlowColor = Color.cyan;
 
+    [Header("Advanced Color Palette (Background)")]
+    public Camera mainCamera;
+    public Color levelsBG = new Color32(21, 11, 45, 255); // #150B2D
+    public Color classicBG = new Color32(15, 15, 15, 255); // #0F0F0F
+    public float colorTransitionSpeed = 5f;
+
     private void Awake()
     {
         Instance = this;
         speedDirection = Vector3.forward;
 
-        // Play düyməsinin məntiqi
         PLayButton.onClick.AddListener(() =>
         {
             if (currentMode == GameMode.Levels)
-                TransitionManager.Instance.LoadLevel("Game"); // Level səhnəsi
+                TransitionManager.Instance.LoadLevel("Game");
             else
-                TransitionManager.Instance.LoadLevel("ClassicGame"); // Classic səhnəsi
+                TransitionManager.Instance.LoadLevel("ClassicGame");
         });
     }
 
     private void Start()
     {
-        // 1. Ən son seçilmiş modu yaddaşdan oxu (Default olaraq 0 yəni Levels)
+        // 1. Yaddaşdan rejimi oxu
         currentMode = (GameMode)PlayerPrefs.GetInt("SavedGameMode", 0);
 
         int level = PlayerPrefs.GetInt("level", 1);
@@ -85,28 +92,52 @@ public class MainMenuManager : MonoBehaviour
         ApplyTargetGlow();
         Invoke(nameof(SpawnBall), 0f);
 
-        // 2. Vizualı yadda qalan moda görə nizamla
+        // 2. Vizual nizamlamalar
         UpdateModeVisuals();
 
-        // Highlight-ı animasiyasız birbaşa yerinə qoy (Açılışda sürüşməsin)
-        highlightBox.anchoredPosition = (currentMode == GameMode.Levels) ? levelsPos : classicPos;
+        // 3. Açılışda highlight-ı birbaşa yerinə qoy
+        if (highlightBox != null && levelsBtnRect != null && classicBtnRect != null)
+        {
+            highlightBox.anchoredPosition =
+                (currentMode == GameMode.Levels)
+                    ? levelsBtnRect.anchoredPosition
+                    : classicBtnRect.anchoredPosition;
+        }
 
         if (StarUI.Instance != null)
             StarUI.Instance.UpdateUI();
     }
 
-    // --- MODE SELECTION ---
+    private void Update()
+    {
+        // QAYTARILAN HİSSƏ: Hədəfin fırlanma hərəkəti
+        if (target != null)
+        {
+            transform.RotateAround(
+                target.transform.position,
+                speedDirection,
+                currentSpeed * Time.deltaTime
+            );
+        }
+
+        // Background rəng keçidi
+        if (mainCamera != null)
+        {
+            Color targetBG = (currentMode == GameMode.Levels) ? levelsBG : classicBG;
+            mainCamera.backgroundColor = Color.Lerp(
+                mainCamera.backgroundColor,
+                targetBG,
+                Time.deltaTime * colorTransitionSpeed
+            );
+        }
+    }
+
     public void SetLevelsMode()
     {
         if (currentMode == GameMode.Levels)
             return;
         currentMode = GameMode.Levels;
-
-        // 3. Seçimi yaddaşa yaz
-        PlayerPrefs.SetInt("SavedGameMode", (int)currentMode);
-        PlayerPrefs.Save();
-
-        UpdateModeVisuals();
+        SaveAndRefresh();
     }
 
     public void SetClassicMode()
@@ -114,11 +145,13 @@ public class MainMenuManager : MonoBehaviour
         if (currentMode == GameMode.Classic)
             return;
         currentMode = GameMode.Classic;
+        SaveAndRefresh();
+    }
 
-        // 3. Seçimi yaddaşa yaz
+    private void SaveAndRefresh()
+    {
         PlayerPrefs.SetInt("SavedGameMode", (int)currentMode);
         PlayerPrefs.Save();
-
         UpdateModeVisuals();
     }
 
@@ -129,7 +162,6 @@ public class MainMenuManager : MonoBehaviour
 
         if (bestScoreText != null)
         {
-            // Rejimə görə fərqli rekordları göstər
             int best =
                 (currentMode == GameMode.Classic)
                     ? PlayerPrefs.GetInt("ClassicBestScore", 0)
@@ -137,7 +169,6 @@ public class MainMenuManager : MonoBehaviour
             bestScoreText.text = best.ToString();
         }
 
-        // Yazı rəngləri (Highlight üstündə olan qara, digəri ağ)
         if (levelsText != null)
             levelsText.color = (currentMode == GameMode.Levels) ? Color.black : Color.white;
         if (classicText != null)
@@ -149,7 +180,14 @@ public class MainMenuManager : MonoBehaviour
 
     IEnumerator SlideHighlight()
     {
-        Vector2 targetPos = (currentMode == GameMode.Levels) ? levelsPos : classicPos;
+        if (highlightBox == null || levelsBtnRect == null || classicBtnRect == null)
+            yield break;
+
+        Vector2 targetPos =
+            (currentMode == GameMode.Levels)
+                ? levelsBtnRect.anchoredPosition
+                : classicBtnRect.anchoredPosition;
+
         while (Vector2.Distance(highlightBox.anchoredPosition, targetPos) > 0.1f)
         {
             highlightBox.anchoredPosition = Vector2.Lerp(
@@ -162,7 +200,6 @@ public class MainMenuManager : MonoBehaviour
         highlightBox.anchoredPosition = targetPos;
     }
 
-    // --- GAME LOGIC ---
     void UpdateLevelUI(int level, int points, int totalRequired)
     {
         if (levelColors == null || levelColors.Length == 0)
@@ -190,16 +227,6 @@ public class MainMenuManager : MonoBehaviour
             progressBarFill.color = levelColors[currentIndex];
         }
         ballGlowColor = levelColors[currentIndex];
-    }
-
-    private void Update()
-    {
-        if (target != null)
-            transform.RotateAround(
-                target.transform.position,
-                speedDirection,
-                currentSpeed * Time.deltaTime
-            );
     }
 
     public void SpawnBall()
