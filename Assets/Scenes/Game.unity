@@ -1732,6 +1732,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 9244e12d036d616409a6157fbb8872c8, type: 2}
   - {fileID: 11400000, guid: 6883cabb8f7be32459ffddd3bc0ff1b0, type: 2}
   previewApplier: {fileID: 1921021555}
+  targetObject: {fileID: 1046169873}
+  jumpHeight: 3.5
 --- !u!114 &506058503
 MonoBehaviour:
   m_ObjectHideFlags: 0

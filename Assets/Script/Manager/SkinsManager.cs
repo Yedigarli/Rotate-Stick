@@ -1,5 +1,5 @@
 using System.Collections;
-using System.Collections.Generic; // List-dən istifadə üçün mütləqdir
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -20,7 +20,11 @@ public class SkinsManager : MonoBehaviour
     public SkinData[] skins;
     public SkinApplier previewApplier;
 
-    // Bütün düymələri yadda saxlayan siyahı
+    [Header("Target Animation (Menu Only)")]
+    public GameObject targetObject; // Target Parent obyekti
+    public float jumpHeight = 3.5f;
+    private Vector3 originalPosition;
+
     private List<SkinButton> allButtons = new List<SkinButton>();
 
     private void Awake()
@@ -36,7 +40,13 @@ public class SkinsManager : MonoBehaviour
             closeSkinsButton.onClick.AddListener(CloseSkins);
     }
 
-    // Düymələr yarandıqda özlərini bura əlavə edir
+    void Start()
+    {
+        // Targetin ilkin yerini yadda saxla (yalnız menyuda lazımdır)
+        if (targetObject != null)
+            originalPosition = targetObject.transform.position;
+    }
+
     public void RegisterButton(SkinButton btn)
     {
         if (!allButtons.Contains(btn))
@@ -49,45 +59,30 @@ public class SkinsManager : MonoBehaviour
             return;
 
         string skinKey = "Skin_" + skin.skinID;
-        // Skin artıq açıqdırsa və ya default olaraq açıqdırsa (1 = açıq, 0 = bağlı)
         bool isUnlocked = PlayerPrefs.GetInt(skinKey, skin.unlockedByDefault ? 1 : 0) == 1;
 
         if (isUnlocked)
-        {
-            // SEÇMƏK MƏNTİQİ
             CompleteSelection(skin);
-        }
         else
         {
-            // SATINALMA MƏNTİQİ
             if (StarManager.Instance != null && StarManager.Instance.SpendStars(skin.price))
             {
-                // Kilidi aç və yadda saxla
                 PlayerPrefs.SetInt(skinKey, 1);
                 PlayerPrefs.Save();
-
-                // Seçimi tamamla
                 CompleteSelection(skin);
-            }
-            else
-            {
-                // Bura bir "No Stars" animasiyası və ya səs əlavə edə bilərsən
             }
         }
     }
 
-    // Seçimi tətbiq edən köməkçi funksiya
     private void CompleteSelection(SkinData skin)
     {
         PlayerPrefs.SetString("SelectedSkin", skin.skinID);
         PlayerPrefs.Save();
 
-        // Səhnədəki vizualı dəyiş
         SkinApplier sceneApplier = FindFirstObjectByType<SkinApplier>();
         if (sceneApplier != null)
             sceneApplier.ApplySkin(skin);
 
-        // Bütün düymələrin rənglərini/kilid xassələrini yenilə
         foreach (SkinButton btn in allButtons)
             btn.UpdateUI();
     }
@@ -97,7 +92,13 @@ public class SkinsManager : MonoBehaviour
         if (isAnimating)
             return;
 
-        // ⭐ Oyunu dayandır (Oyun səhnəsindəsənsə)
+        // 1. Topları gizlət (SetActive(false))
+        SetBallsActive(false);
+
+        // 2. Yeni top yaranmasını dayandır
+        if (MainMenuManager.Instance != null)
+            MainMenuManager.Instance.isSkinsOpen = true;
+
         if (GameManager.Instance != null)
         {
             GameManager.Instance.isSettingsOpen = true;
@@ -107,6 +108,8 @@ public class SkinsManager : MonoBehaviour
         skinsPanel.SetActive(true);
         foreach (SkinButton btn in allButtons)
             btn.UpdateUI();
+
+        StopAllCoroutines();
         StartCoroutine(Animate(true));
     }
 
@@ -115,26 +118,23 @@ public class SkinsManager : MonoBehaviour
         if (isAnimating)
             return;
 
-        // ⭐ ƏSAS HİSSƏ BURADIR:
-        // Əgər GameOver popup-ı hazırda ekrandadırsa, zaman 0 olaraq qalsın.
-        // Əgər GameOver ekranda DEYİLSƏ (yəni oyun zamanı açmısansa), zaman 1 olsun.
+        // ⭐ 1. Gizli topları yenidən GÖSTƏR
+        SetBallsActive(true);
+
         if (GameManager.Instance != null)
         {
             if (GameManager.Instance.gameoverPOPUP.activeSelf)
-            {
-                Time.timeScale = 0f; // GameOver açıqdırsa, oyunu başlatma
-            }
+                Time.timeScale = 0f;
             else
             {
-                Time.timeScale = 1f; // Normal oyun zamanı açılıbsa, davam et
+                Time.timeScale = 1f;
                 GameManager.Instance.isSettingsOpen = false;
             }
         }
         else
-        {
-            Time.timeScale = 1f; // Menu səhnəsindəsənsə normal davam et
-        }
+            Time.timeScale = 1f;
 
+        StopAllCoroutines();
         StartCoroutine(Animate(false));
     }
 
@@ -142,30 +142,80 @@ public class SkinsManager : MonoBehaviour
     {
         isAnimating = true;
         float t = 0f;
+
+        // UI Dəyərləri
         float startA = open ? 0 : 1;
         float endA = open ? 1 : 0;
         Vector3 startS = open ? Vector3.one * 0.8f : Vector3.one;
         Vector3 endS = open ? Vector3.one : Vector3.one * 0.8f;
 
+        // ⭐ Target Hərəkət Dəyərləri (Yalnız menyuda)
+        Vector3 startPos = targetObject != null ? targetObject.transform.position : Vector3.zero;
+        Vector3 endPos = open ? originalPosition + Vector3.up * jumpHeight : originalPosition;
+
         while (t < animDuration)
         {
             t += Time.unscaledDeltaTime;
             float p = t / animDuration;
+            float curve = p * p * (3 - 2 * p); // Smooth keçid
+
+            // UI Animasiyası
             canvasGroup.alpha = Mathf.Lerp(startA, endA, p);
             skinsPanel.transform.localScale = Vector3.Lerp(startS, endS, p);
+
+            // ⭐ Target Hərəkəti (Scale-ə toxunmadan)
+            if (targetObject != null)
+                targetObject.transform.position = Vector3.Lerp(startPos, endPos, curve);
+
             yield return null;
         }
 
         canvasGroup.alpha = endA;
         skinsPanel.transform.localScale = endS;
+
+        if (targetObject != null)
+            targetObject.transform.position = endPos;
+
         if (!open)
+        {
             skinsPanel.SetActive(false);
+
+            // ⭐ Topları geri qaytar
+            SetBallsActive(true);
+
+            // ⭐ Yeni top yaranmasına icazə ver
+            if (MainMenuManager.Instance != null)
+                MainMenuManager.Instance.isSkinsOpen = false;
+        }
+
         isAnimating = false;
+    }
+
+    // ⭐ Topları Tag-ə görə gizlədib-açan funksiya
+    private void SetBallsActive(bool state)
+    {
+        if (MainMenuManager.Instance == null)
+            return;
+
+        // Siyahıdakı hər bir topu yoxla
+        for (int i = MainMenuManager.Instance.activeBalls.Count - 1; i >= 0; i--)
+        {
+            GameObject b = MainMenuManager.Instance.activeBalls[i];
+
+            if (b != null)
+            {
+                b.SetActive(state);
+            }
+            else
+            {
+                // Əgər top artıq yoxdursa (null-dursa), siyahıdan birdəfəlik sil
+                MainMenuManager.Instance.activeBalls.RemoveAt(i);
+            }
+        }
     }
 
     public void MakeSpriteGlow(SpriteRenderer sr, float intensity)
     {
-        // Spritun rəngini HDR faktoruna vuraraq parladırıq
         float factor = Mathf.Pow(2, intensity);
         sr.color = new Color(1 * factor, 1 * factor, 1 * factor, 1);
     }

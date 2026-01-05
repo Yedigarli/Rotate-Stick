@@ -4,6 +4,9 @@ public class Ball : MonoBehaviour
 {
     public BallType ballType;
 
+    [Header("Scene Settings")]
+    public bool isMenuBall = false; // Əgər menyudakı topdursa, bunu Inspector-da işarələ
+
     [Header("Movement")]
     public bool isMoving;
     public float moveSpeed = 1.5f;
@@ -20,8 +23,19 @@ public class Ball : MonoBehaviour
 
     private void Update()
     {
-        // Pulse (Nəfəs alma) animasiyası - Oyunu canlı göstərən kiçik detallardır
+        // Pulse (Nəfəs alma) animasiyası
         float pulse = Mathf.Sin(Time.time * 3f) * 0.05f;
-        transform.localScale = Vector3.one * (0.27f + pulse);
+
+        // ⭐ Şərtə görə ölçünü təyin edirik
+        if (isMenuBall)
+        {
+            // Menyu üçün ölçü (Məsələn, daha böyük: 0.27)
+            transform.localScale = Vector3.one * (0.21f + pulse);
+        }
+        else
+        {
+            // Oyun səhnəsi üçün ölçü (Məsələn, daha kiçik: 0.15)
+            transform.localScale = Vector3.one * (0.27f + pulse);
+        }
     }
 }
