@@ -96,14 +96,25 @@ public class LevelManager : MonoBehaviour
         if (levelColors == null || levelColors.Length == 0)
             return;
 
-        int colorIndex = (level - 1) % levelColors.Length;
-        currentLevelThemeColor = levelColors[colorIndex];
+        // 1. Cari levelin rəng indeksi
+        int currentColorIndex = (level - 1) % levelColors.Length;
+        currentLevelThemeColor = levelColors[currentColorIndex];
+
+        // 2. Növbəti levelin rəng indeksi (Dairənin arxa rəngi üçün)
+        int nextColorIndex = level % levelColors.Length;
+        Color nextLevelThemeColor = levelColors[nextColorIndex];
 
         // UI-ları rənglə
         if (currentLevelCircle != null)
             currentLevelCircle.color = currentLevelThemeColor;
+
+        // ⭐ BURANI DƏYİŞDİK: Sağ dairə artıq növbəti rəngdə olacaq
         if (nextLevelCircle != null)
-            nextLevelCircle.color = currentLevelThemeColor;
+            nextLevelCircle.color = nextLevelThemeColor;
+
+        // ProgressBar rəngi cari levelin rəngində qalsın (və ya keçid rəngi edə bilərsən)
+        if (progressBarFill != null)
+            progressBarFill.color = currentLevelThemeColor;
 
         // GameManager-i yenilə
         if (GameManager.Instance != null)
@@ -111,7 +122,7 @@ public class LevelManager : MonoBehaviour
             GameManager.Instance.baseBallColor = currentLevelThemeColor;
             GameManager.Instance.ballGlowColor = currentLevelThemeColor;
 
-            // Əgər ekranda hal-hazırda top varsa, onun da rəngini dərhal dəyişək (Level Up anı üçün)
+            // Aktiv topun rəngini dəyiş
             GameObject activeBall = GameObject.FindWithTag("Ball");
             if (activeBall != null)
             {
@@ -132,6 +143,9 @@ public class LevelManager : MonoBehaviour
 
         // ⭐ REKORDU YADDA SAXLA
         CheckBestScore();
+
+        PlayerPrefs.SetInt("currentPoints", currentPoints);
+        PlayerPrefs.Save();
 
         targetFillAmount = (float)currentPoints / pointsToNextLevel;
 
@@ -175,6 +189,9 @@ public class LevelManager : MonoBehaviour
 
         pointsToNextLevel = level + 5;
         PlayerPrefs.SetInt("level", level);
+        PlayerPrefs.Save();
+
+        PlayerPrefs.SetInt("currentPoints", currentPoints);
         PlayerPrefs.Save();
 
         UpdateLevelTexts();
