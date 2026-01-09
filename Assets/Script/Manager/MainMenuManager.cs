@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using DG.Tweening;
 using MaskTransitions;
 using TMPro;
 using UnityEngine;
@@ -39,7 +40,6 @@ public class MainMenuManager : MonoBehaviour
     public float radius = 1.2f;
     private Vector3 speedDirection;
 
-    [HideInInspector]
     public bool isSkinsOpen = false;
     public List<GameObject> activeBalls = new List<GameObject>();
 
@@ -155,9 +155,12 @@ public class MainMenuManager : MonoBehaviour
         }
 
         if (levelsText != null)
-            levelsText.color = (currentMode == GameMode.Levels) ? Color.black : Color.white;
+            levelsText.color = (currentMode == GameMode.Levels) ? Color.green : Color.white;
         if (classicText != null)
-            classicText.color = (currentMode == GameMode.Classic) ? Color.black : Color.white;
+            classicText.color = (currentMode == GameMode.Classic) ? Color.red : Color.white;
+
+        int level = PlayerPrefs.GetInt("level", 1);
+        UpdateLevelUI(level, PlayerPrefs.GetInt("currentPoints", 0), level + 5);
 
         StopAllCoroutines();
         StartCoroutine(SlideHighlight());
@@ -186,25 +189,62 @@ public class MainMenuManager : MonoBehaviour
     {
         if (levelColors == null || levelColors.Length == 0)
             return;
-        int currentIndex = (level - 1) % levelColors.Length;
-        int nextIndex = level % levelColors.Length;
+
+        int currentIndex;
+        int nextIndex;
+
+        if (currentMode == GameMode.Classic)
+        {
+            currentIndex = 0;
+            nextIndex = 0;
+        }
+        else
+        {
+            currentIndex = (level - 1) % levelColors.Length;
+            nextIndex = level % levelColors.Length;
+        }
+        // ----------------------------
+
         if (levelText != null)
             levelText.text = level.ToString();
         if (nextLevelText != null)
             nextLevelText.text = (level + 1).ToString();
+
         float fillAmount = (float)points / totalRequired;
+
         if (percentageText != null)
             percentageText.text = Mathf.RoundToInt(fillAmount * 100f) + "%";
+
         if (levelCircle != null)
             levelCircle.color = levelColors[currentIndex];
         if (nextLevelCircle != null)
             nextLevelCircle.color = levelColors[nextIndex];
+
         if (progressBarFill != null)
         {
             progressBarFill.fillAmount = fillAmount;
             progressBarFill.color = levelColors[currentIndex];
         }
+
+        // Topun rəngini də buna görə yeniləyirik
         ballGlowColor = levelColors[currentIndex];
+
+        for (int i = activeBalls.Count - 1; i >= 0; i--)
+        {
+            if (activeBalls[i] != null)
+            {
+                SpriteRenderer sr = activeBalls[i].GetComponent<SpriteRenderer>();
+                if (sr != null)
+                {
+                    sr.DOKill();
+                    sr.DOColor(ballGlowColor, 0.5f).SetUpdate(true);
+                }
+            }
+            else
+            {
+                activeBalls.RemoveAt(i);
+            }
+        }
     }
 
     public void SpawnBall()

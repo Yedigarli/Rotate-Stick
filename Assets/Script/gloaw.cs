@@ -15,10 +15,10 @@ public class GlowEffect : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
     void Start()
     {
         // 1. Düymənin özünün nəfəs alması (Hop stili)
-        transform.DOScale(breatheScale, breatheDuration)
-            .SetEase(Ease.InOutSine)
-            .SetLoops(-1, LoopType.Yoyo)
-            .SetUpdate(true);
+        // transform.DOScale(breatheScale, breatheDuration)
+        //     .SetEase(Ease.InOutSine)
+        //     .SetLoops(-1, LoopType.Yoyo)
+        //     .SetUpdate(true);
 
         // 2. Arxa fonun parlaması
         if (glowImage != null)

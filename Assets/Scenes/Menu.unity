@@ -3706,7 +3706,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 0.6313726}
+  m_Color: {r: 0.8784314, g: 0.8784314, b: 0.8784314, a: 0.627451}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -6413,6 +6413,11 @@ MonoBehaviour:
   - {r: 0.68235296, g: 0.08627451, b: 1, a: 1}
   - {r: 1, g: 0.62352943, b: 0.101960786, a: 1}
   - {r: 1, g: 0.3019608, b: 1, a: 1}
+  - {r: 0.2627451, g: 0.3882353, b: 0.84705883, a: 1}
+  - {r: 0, g: 0.5019608, b: 0.5019608, a: 1}
+  - {r: 0.9019608, g: 0.09803922, b: 0.29411766, a: 1}
+  - {r: 1, g: 0.84313726, b: 0, a: 1}
+  - {r: 0.63529414, g: 1, b: 0, a: 1}
   player: {fileID: 1607543965}
   target: {fileID: 1445904419}
   ball: {fileID: 6273950813358545972, guid: e684c1d2fcfae404cb45f427bda2c805, type: 3}
@@ -7005,7 +7010,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 0.8784314, g: 0.8784314, b: 0.8784314, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -7200,7 +7205,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 0}
+  m_Color: {r: 0.8784314, g: 0.8784314, b: 0.8784314, a: 0}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1

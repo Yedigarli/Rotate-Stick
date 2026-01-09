@@ -27,8 +27,9 @@ public class TaskManager : MonoBehaviour
     public float totalDelay = 0.5f;
 
     [Header("Cooldown Settings")]
+    [Header("Cooldown Settings")]
     public float giftCooldownHours = 0.001f;
-    private string lastGiftKey = "LastGiftTime";
+    private string lastGiftKey = "FreeGift_Daily_Timer"; // Adı dəyişdik
     private bool isReady = false;
 
     private void Awake()
@@ -89,56 +90,46 @@ public class TaskManager : MonoBehaviour
 
     public void CheckGiftStatus()
     {
-        UpdateTimer(); // Vaxtın bitib-bitmədiyini yoxla
+        // 1. Əvvəlcə taymerin son vəziyyətini yoxla
+        UpdateTimer();
 
-        if (isReady)
-        {
-            // Yalnız hədiyyə hazır olduqda paneli göstər
-            ShowFreeGift();
-        }
-        else
-        {
-            // Hədiyyə hazır deyilsə, paneli gizli saxla (ekranın çölündə)
-            giftPanel.anchoredPosition = new Vector2(-1200f, giftPanel.anchoredPosition.y);
-            giftPanel.gameObject.SetActive(false);
-        }
+        // 2. Paneli dərhal ekranın kənarına (-1200) atırıq ki, animasiya oradan başlasın
+        giftPanel.anchoredPosition = new Vector2(-1200f, giftPanel.anchoredPosition.y);
+        giftPanel.gameObject.SetActive(true);
+
+        // 3. İndi isə soldan mərkəzə doğru animasiyanı başladırıq
+        // Bu funksiya həm hazır olanda, həm də taymer sayanda işləyəcək
+        ShowFreeGift();
     }
 
-    // --- PANEL ANİMASİYALARI ---
+    // ShowFreeGift funksiyası artıq bizdə var, sadəcə SetUpdate(true) olduğundan əmin ol
     public void ShowFreeGift()
     {
-        giftPanel.gameObject.SetActive(true);
-        // Soldan mərkəzə gəlir
-        giftPanel.DOAnchorPosX(0f, 0.6f).SetEase(Ease.OutBack).SetUpdate(true);
+        // DOTween ilə soldan mərkəzə (0-a) sürüşmə
+        giftPanel.DOAnchorPosX(0f, 0.6f)
+            .SetEase(Ease.OutBack)
+            .SetUpdate(true); // Oyun dayansa belə animasiya işləsin
     }
 
-    public void CloseFreeGift()
-    {
-        giftPanel.DOAnchorPosX(-1200f, 0.5f).SetEase(Ease.InBack).SetUpdate(true)
-                 .OnComplete(() => giftPanel.gameObject.SetActive(false));
-    }
+    // public void CloseFreeGift()
+    // {
+    //     giftPanel.DOAnchorPosX(-1200f, 0.5f).SetEase(Ease.InBack).SetUpdate(true)
+    //              .OnComplete(() => giftPanel.gameObject.SetActive(false));
+    // }
 
     // --- ULDUZ ALMA VƏ ANİMASİYA ---
     public void OnGetButtonClick()
     {
-        // Düyməni dərhal bağla ki, təkrar basılmasın
         getGiftButton.interactable = false;
         getGiftButton.transform.DOKill();
         getGiftButton.transform.localScale = Vector3.one;
 
-        // Vaxtı yadda saxla
+        // TAYMERİ YALNIZ BURADA SIFIRLAYIRIQ
         PlayerPrefs.SetString(lastGiftKey, DateTime.Now.ToString());
         isReady = false;
 
-        // Ulduzları uçur
-        float starPerDelay = totalDelay / starAmount;
-        for (int i = 0; i < starAmount; i++)
-        {
-            ShowCoin(i * starPerDelay);
-        }
-
-        // 2 saniyə sonra paneli bağla
-        DOVirtual.DelayedCall(2f, CloseFreeGift).SetUpdate(true);
+        // Ulduzları uçur (Məsələn 15 dənə)
+        StartStarAnimationOnly(15);
     }
 
     private void ShowCoin(float delay)
@@ -183,10 +174,8 @@ public class TaskManager : MonoBehaviour
     // Bu funksiyanı TaskManager-in içinə əlavə et
     public void StartStarAnimationOnly(int amount)
     {
-        starAmount = amount;
-        float starPerDelay = totalDelay / starAmount;
-
-        for (int i = 0; i < starAmount; i++)
+        float starPerDelay = totalDelay / amount;
+        for (int i = 0; i < amount; i++)
         {
             ShowCoin(i * starPerDelay);
         }
