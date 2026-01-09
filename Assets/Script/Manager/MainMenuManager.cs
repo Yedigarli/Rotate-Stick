@@ -49,9 +49,9 @@ public class MainMenuManager : MonoBehaviour
     public TMP_Text levelsText;
     public TMP_Text classicText;
 
-    [Header("Stretch Compatible Mode Selection")]
-    public RectTransform levelsBtnRect;
-    public RectTransform classicBtnRect;
+    [Header("Mode Interaction Settings")]
+    public RectTransform levelsPos;
+    public RectTransform classicPos;
     public float slideSpeed = 10f;
 
     [ColorUsage(showAlpha: true, hdr: true)]
@@ -62,8 +62,8 @@ public class MainMenuManager : MonoBehaviour
 
     [Header("Advanced Color Palette (Background)")]
     public Camera mainCamera;
-    public Color levelsBG = new Color32(21, 11, 45, 255); // #150B2D
-    public Color classicBG = new Color32(15, 15, 15, 255); // #0F0F0F
+    public Color levelsBG = new Color32(21, 11, 45, 255);
+    public Color classicBG = new Color32(15, 15, 15, 255);
     public float colorTransitionSpeed = 5f;
 
     private void Awake()
@@ -82,35 +82,26 @@ public class MainMenuManager : MonoBehaviour
 
     private void Start()
     {
-        // 1. Yaddaşdan rejimi oxu
         currentMode = (GameMode)PlayerPrefs.GetInt("SavedGameMode", 0);
-
-        int level = PlayerPrefs.GetInt("level", 1);
-        int currentPoints = PlayerPrefs.GetInt("currentPoints", 0);
-        UpdateLevelUI(level, currentPoints, level + 5);
-
-        ApplyTargetGlow();
-        Invoke(nameof(SpawnBall), 0f);
-
-        // 2. Vizual nizamlamalar
         UpdateModeVisuals();
 
-        // 3. Açılışda highlight-ı birbaşa yerinə qoy
-        if (highlightBox != null && levelsBtnRect != null && classicBtnRect != null)
+        if (highlightBox != null && levelsPos != null && classicPos != null)
         {
             highlightBox.anchoredPosition =
                 (currentMode == GameMode.Levels)
-                    ? levelsBtnRect.anchoredPosition
-                    : classicBtnRect.anchoredPosition;
+                    ? levelsPos.anchoredPosition
+                    : classicPos.anchoredPosition;
         }
 
-        if (StarUI.Instance != null)
-            StarUI.Instance.UpdateUI();
+        int level = PlayerPrefs.GetInt("level", 1);
+        UpdateLevelUI(level, PlayerPrefs.GetInt("currentPoints", 0), level + 5);
+        ApplyTargetGlow();
+        Invoke(nameof(SpawnBall), 0f);
     }
 
     private void Update()
     {
-        // QAYTARILAN HİSSƏ: Hədəfin fırlanma hərəkəti
+        // Hədəf ətrafında fırlanma
         if (target != null)
         {
             transform.RotateAround(
@@ -120,7 +111,7 @@ public class MainMenuManager : MonoBehaviour
             );
         }
 
-        // Background rəng keçidi
+        // Kamera rəng keçidi
         if (mainCamera != null)
         {
             Color targetBG = (currentMode == GameMode.Levels) ? levelsBG : classicBG;
@@ -132,19 +123,13 @@ public class MainMenuManager : MonoBehaviour
         }
     }
 
-    public void SetLevelsMode()
+    public void ToggleGameMode()
     {
         if (currentMode == GameMode.Levels)
-            return;
-        currentMode = GameMode.Levels;
-        SaveAndRefresh();
-    }
+            currentMode = GameMode.Classic;
+        else
+            currentMode = GameMode.Levels;
 
-    public void SetClassicMode()
-    {
-        if (currentMode == GameMode.Classic)
-            return;
-        currentMode = GameMode.Classic;
         SaveAndRefresh();
     }
 
@@ -180,14 +165,10 @@ public class MainMenuManager : MonoBehaviour
 
     IEnumerator SlideHighlight()
     {
-        if (highlightBox == null || levelsBtnRect == null || classicBtnRect == null)
-            yield break;
-
         Vector2 targetPos =
             (currentMode == GameMode.Levels)
-                ? levelsBtnRect.anchoredPosition
-                : classicBtnRect.anchoredPosition;
-
+                ? levelsPos.anchoredPosition
+                : classicPos.anchoredPosition;
         while (Vector2.Distance(highlightBox.anchoredPosition, targetPos) > 0.1f)
         {
             highlightBox.anchoredPosition = Vector2.Lerp(
@@ -200,23 +181,20 @@ public class MainMenuManager : MonoBehaviour
         highlightBox.anchoredPosition = targetPos;
     }
 
+    // --- Digər köməkçi funksiyalar (Heç bir dəyişiklik edilməyib) ---
     void UpdateLevelUI(int level, int points, int totalRequired)
     {
         if (levelColors == null || levelColors.Length == 0)
             return;
-
         int currentIndex = (level - 1) % levelColors.Length;
         int nextIndex = level % levelColors.Length;
-
         if (levelText != null)
             levelText.text = level.ToString();
         if (nextLevelText != null)
             nextLevelText.text = (level + 1).ToString();
-
         float fillAmount = (float)points / totalRequired;
         if (percentageText != null)
             percentageText.text = Mathf.RoundToInt(fillAmount * 100f) + "%";
-
         if (levelCircle != null)
             levelCircle.color = levelColors[currentIndex];
         if (nextLevelCircle != null)
@@ -234,14 +212,11 @@ public class MainMenuManager : MonoBehaviour
         if (isSkinsOpen)
             return;
         activeBalls.RemoveAll(item => item == null);
-
         Vector2 pos2D = Random.insideUnitCircle.normalized * radius;
         Vector3 spawnPos = target.transform.position + new Vector3(pos2D.x, pos2D.y, 0f);
-
         GameObject spawnedBall = Instantiate(ball, spawnPos, Quaternion.identity);
         spawnedBall.tag = "Ball";
         activeBalls.Add(spawnedBall);
-
         SpriteRenderer sr = spawnedBall.GetComponent<SpriteRenderer>();
         if (sr != null)
             sr.color = ballGlowColor;

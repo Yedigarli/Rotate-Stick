@@ -51,6 +51,13 @@ public class LevelManager : MonoBehaviour
     private Color currentLevelThemeColor;
     private bool isBestScoreReachedThisSession = false;
 
+    [Header("Reward Settings")]
+    public int levelUpStarReward = 20; // Level keçəndə verilən ulduz
+    public int bestScoreStarReward = 10; // Rekord qıranda verilən ulduz
+
+    // TaskManager referansı (Animasiyanı başlatmaq üçün)
+    private TaskManager taskManager;
+
     private void Awake()
     {
         if (Instance == null)
@@ -74,6 +81,8 @@ public class LevelManager : MonoBehaviour
     {
         // Oyun tam başlayanda rəngləri tətbiq et
         UpdateThemeColor();
+
+        taskManager = FindFirstObjectByType<TaskManager>();
     }
 
     private void Update()
@@ -162,20 +171,25 @@ public class LevelManager : MonoBehaviour
 
         if (totalScore > currentBest)
         {
-            // Əgər rekord bu sessiyada hələ qırılmayıbsa və köhnə rekord 0-dan böyükdürsə
-            // (0-dan böyük olması ona görədir ki, ilk dəfə oynayanda dərhal konfeti çıxmasın)
             if (!isBestScoreReachedThisSession && currentBest > 0)
             {
-                isBestScoreReachedThisSession = true; // Artıq bu oyun üçün rekord qırıldı
+                isBestScoreReachedThisSession = true;
 
-                // Konfeti partlat
+                // ⭐ REKORD ÜÇÜN ULDUZ VER
+                if (StarManager.Instance != null)
+                {
+                    StarManager.Instance.AddStar(bestScoreStarReward);
+                    if (taskManager != null)
+                    {
+                        taskManager.starAmount = bestScoreStarReward;
+                        taskManager.OnGetButtonClick();
+                    }
+                }
+
                 SpawnLevelUpEffect();
-
-                // UI-da rekord qırıldığına dair mesaj çıxart (opsional)
                 ShowStatus("NEW BEST!", perfectColor);
             }
 
-            // Yeni rekordu yadda saxla
             PlayerPrefs.SetInt("BestScore", totalScore);
             PlayerPrefs.Save();
         }
@@ -194,11 +208,20 @@ public class LevelManager : MonoBehaviour
         PlayerPrefs.SetInt("currentPoints", currentPoints);
         PlayerPrefs.Save();
 
+        // ⭐ ULDUZ ARTIMINI BURADAN SİLDİK (StarManager.Instance.AddStar hissəsini)
+        // Sadəcə animasiyanı çağırırıq, ulduzlar uçub hədəfə çatanda özü artacaq.
+        if (taskManager != null)
+        {
+            taskManager.starAmount = levelUpStarReward;
+
+            // Animasiyanı başla, amma Free Gift vaxtını sıfırlama!
+            // Bunun üçün aşağıdakı yeni funksiyanı çağıracağıq:
+            taskManager.StartStarAnimationOnly(levelUpStarReward);
+        }
+
         UpdateLevelTexts();
         ShowStatus("LEVEL UP!", levelUpColor);
         UpdateThemeColor();
-
-        // ⭐ PARTLAYIŞ EFFEKTİNİ ÇAĞIRIRIQ
         SpawnLevelUpEffect();
 
         if (GameManager.Instance != null)

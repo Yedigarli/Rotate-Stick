@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using MaskTransitions;
 using TMPro;
 using UnityEngine;
@@ -81,7 +82,7 @@ public class GameManager : MonoBehaviour
         if (canvasGroup != null)
             canvasGroup.alpha = 0;
 
-        FirstSpeed = PlayerPrefs.GetFloat("firstspeed", 90);
+        FirstSpeed = PlayerPrefs.GetFloat("firstspeed", FirstSpeed);
         currentSpeed = FirstSpeed;
         Invoke(nameof(SpawnBall), 0.1f);
 
@@ -477,16 +478,24 @@ public class GameManager : MonoBehaviour
             return;
 
         gameoverPOPUP.SetActive(true);
+        // Əsas animasiyanı (böyümə və şəffaflıq) başlat
         StartCoroutine(Animate(true));
 
-        // Zamanı dayandırmağı unscaled animasiyadan sonraya saxlayırıq
+        // ⭐ YENİ HİSSƏ: Animasiya müddəti qədər gözlə və sonra Free Gift-i çağır
+        StartCoroutine(ShowGiftAfterGameOver());
+
         StartCoroutine(FreezeTimeDelayed());
     }
 
-    IEnumerator FreezeTimeDelayed()
+    IEnumerator ShowGiftAfterGameOver()
     {
-        yield return new WaitForSecondsRealtime(animDuration);
-        Time.timeScale = 0f;
+        // GameOver animasiyası (0.25s) bitənə qədər gözlə
+        yield return new WaitForSecondsRealtime(animDuration + 0.1f);
+
+        if (TaskManager.Instance != null)
+        {
+            TaskManager.Instance.CheckGiftStatus();
+        }
     }
 
     IEnumerator Animate(bool open)
@@ -565,5 +574,15 @@ public class GameManager : MonoBehaviour
     public int GetComboCount()
     {
         return comboCount;
+    }
+
+    IEnumerator FreezeTimeDelayed()
+    {
+        // Animasiya müddəti qədər (0.25s) gözləyirik. 
+        // Realtime istifadə edirik ki, əgər zaman artıq yavaşlayıbsa problem olmasın.
+        yield return new WaitForSecondsRealtime(animDuration);
+
+        Time.timeScale = 0f;
+        isSettingsOpen = true;
     }
 }
