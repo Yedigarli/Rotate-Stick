@@ -19,8 +19,16 @@ public class SettingsManager : MonoBehaviour
     {
         Instance = this;
         settingsPanel.SetActive(false);
-        settingbutton.onClick.AddListener(() => OpenSettings());
-        closeSettingButton.onClick.AddListener(() => CloseSettings());
+        settingbutton.onClick.AddListener(() =>
+        {
+            UISoundManager.Instance?.PlayClick();
+            OpenSettings();
+        });
+        closeSettingButton.onClick.AddListener(() =>
+        {
+            UISoundManager.Instance?.PlayClick();
+            CloseSettings();
+        });
     }
 
     // 🔘 SETTINGS AÇ

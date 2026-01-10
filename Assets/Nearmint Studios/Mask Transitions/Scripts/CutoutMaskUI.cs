@@ -1,8 +1,8 @@
 namespace MaskTransitions
 {
     using UnityEngine;
-    using UnityEngine.UI;
     using UnityEngine.Rendering;
+    using UnityEngine.UI;
 
     public class CutoutMaskUI : Image
     {
@@ -36,7 +36,5 @@ namespace MaskTransitions
             }
             base.OnDestroy();
         }
-
     }
 }
-

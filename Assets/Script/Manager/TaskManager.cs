@@ -8,11 +8,12 @@ using UnityEngine.UI;
 public class TaskManager : MonoBehaviour
 {
     public static TaskManager Instance; // Bunu Awake-dən yuxarıda elan et
+
     [Header("UI Elements")]
-    public RectTransform giftPanel;      // Soldan gələcək panel
-    public Button getGiftButton;        // Hədiyyə alma düyməsi
-    public TMP_Text timerText;          // Saatı göstərən mətn
-    public Image buttonGlow;            // Düymə hazır olanda parlaması üçün (opsional)
+    public RectTransform giftPanel; // Soldan gələcək panel
+    public Button getGiftButton; // Hədiyyə alma düyməsi
+    public TMP_Text timerText; // Saatı göstərən mətn
+    public Image buttonGlow; // Düymə hazır olanda parlaması üçün (opsional)
 
     [Header("Star Animation Settings")]
     public GameObject starPrefab;
@@ -51,6 +52,8 @@ public class TaskManager : MonoBehaviour
     // --- TAYMER MƏNTİQİ ---
     private void UpdateTimer()
     {
+        if (getGiftButton == null || giftPanel == null || timerText == null)
+            return;
         string lastTimeStr = PlayerPrefs.GetString(lastGiftKey, string.Empty);
 
         if (string.IsNullOrEmpty(lastTimeStr))
@@ -72,20 +75,45 @@ public class TaskManager : MonoBehaviour
         {
             isReady = false;
             getGiftButton.interactable = false;
-            timerText.text = string.Format("{0:D2}:{1:D2}:{2:D2}",
-                remaining.Hours, remaining.Minutes, remaining.Seconds);
+            timerText.text = string.Format(
+                "{0:D2}:{1:D2}:{2:D2}",
+                remaining.Hours,
+                remaining.Minutes,
+                remaining.Seconds
+            );
         }
     }
 
     private void SetReady()
     {
+        if (getGiftButton == null)
+            return; // Əlavə təhlükəsizlik
+
         isReady = true;
         getGiftButton.interactable = true;
         timerText.text = "CLAIM GIFT!";
 
-        // Düymə hazır olanda kiçik bir titrəmə effekti ver
         getGiftButton.transform.DOKill();
-        getGiftButton.transform.DOPunchScale(Vector3.one * 0.1f, 1f, 2).SetLoops(-1).SetUpdate(true);
+        getGiftButton.transform.localScale = Vector3.one;
+
+        // Düymə animasiyasına SetLink əlavə etmisiniz, bu doğrudur
+        getGiftButton
+            .transform.DOPunchScale(Vector3.one * 0.1f, 1f, 2)
+            .SetLoops(-1)
+            .SetUpdate(true)
+            .SetLink(getGiftButton.gameObject);
+
+        // ƏGƏR buttonGlow-a haradasa animasiya verirsinizsə, onu da belə bağlayın:
+        if (buttonGlow != null)
+        {
+            buttonGlow.DOKill(true);
+
+            buttonGlow
+                .DOFade(1f, 0.5f)
+                .SetLoops(-1, LoopType.Yoyo)
+                .SetUpdate(true)
+                .SetLink(buttonGlow.gameObject, LinkBehaviour.KillOnDestroy);
+        }
     }
 
     public void CheckGiftStatus()
@@ -105,10 +133,8 @@ public class TaskManager : MonoBehaviour
     // ShowFreeGift funksiyası artıq bizdə var, sadəcə SetUpdate(true) olduğundan əmin ol
     public void ShowFreeGift()
     {
-        // DOTween ilə soldan mərkəzə (0-a) sürüşmə
-        giftPanel.DOAnchorPosX(0f, 0.6f)
-            .SetEase(Ease.OutBack)
-            .SetUpdate(true); // Oyun dayansa belə animasiya işləsin
+        giftPanel.DOKill(); // Yeni animasiya başlamazdan əvvəl köhnəni öldür
+        giftPanel.DOAnchorPosX(0f, 0.6f).SetEase(Ease.OutBack).SetUpdate(true);
     }
 
     // public void CloseFreeGift()
@@ -138,15 +164,24 @@ public class TaskManager : MonoBehaviour
         Vector3 myVisualScale = new Vector3(0.8f, 0.8f, 0.8f);
 
         // Başlanğıc vəziyyəti
-        var spreadOffset = new Vector3(UnityEngine.Random.Range(-150f, 150f), UnityEngine.Random.Range(-150f, 150f), 0f);
+        var spreadOffset = new Vector3(
+            UnityEngine.Random.Range(-150f, 150f),
+            UnityEngine.Random.Range(-150f, 150f),
+            0f
+        );
         starObject.transform.position = starStart.position;
         starObject.transform.localScale = Vector3.zero;
 
         Sequence s = DOTween.Sequence();
+        s.SetLink(starObject);
 
         // 1. Sıçrayış (Pop out)
         s.Append(starObject.transform.DOScale(Vector3.one, 0.3f).SetEase(Ease.OutBack));
-        s.Join(starObject.transform.DOMove(starStart.position + spreadOffset, 0.4f).SetEase(Ease.OutQuart));
+        s.Join(
+            starObject
+                .transform.DOMove(starStart.position + spreadOffset, 0.4f)
+                .SetEase(Ease.OutQuart)
+        );
 
         s.AppendInterval(0.05f);
 
@@ -165,7 +200,8 @@ public class TaskManager : MonoBehaviour
             starEnd.DOPunchScale(new Vector3(0.2f, 0.2f, 0.2f), 0.2f).SetUpdate(true);
 
             // Real ulduz sayını artır (StarManager-in varsa bura yaz)
-            if (StarManager.Instance != null) StarManager.Instance.AddStar(1);
+            if (StarManager.Instance != null)
+                StarManager.Instance.AddStar(1);
 
             Destroy(starObject);
         });
@@ -179,5 +215,29 @@ public class TaskManager : MonoBehaviour
         {
             ShowCoin(i * starPerDelay);
         }
+    }
+
+    private void OnDisable()
+    {
+        if (buttonGlow != null)
+            buttonGlow.DOKill(true);
+
+        if (giftPanel != null)
+            giftPanel.DOKill(true);
+
+        if (getGiftButton != null)
+            getGiftButton.transform.DOKill(true);
+    }
+
+    private void OnDestroy()
+    {
+        if (buttonGlow != null)
+            buttonGlow.DOKill(true);
+
+        if (giftPanel != null)
+            giftPanel.DOKill(true);
+
+        if (getGiftButton != null)
+            getGiftButton.transform.DOKill(true);
     }
 }

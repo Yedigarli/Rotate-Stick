@@ -1,7 +1,7 @@
 namespace MaskTransitions
 {
-    using DG.Tweening;
     using System.Collections;
+    using DG.Tweening;
     using UnityEngine;
     using UnityEngine.SceneManagement;
     using UnityEngine.UI;
@@ -12,22 +12,34 @@ namespace MaskTransitions
 
         private float screenWidth;
         private float screenHeight;
-        [HideInInspector] public static float maxSize;
+
+        [HideInInspector]
+        public static float maxSize;
         private float individualTransitionTime;
 
         [Header("Transition Properties")]
         public Sprite transitionImage;
         public Color transitionColor;
         public bool rotation;
+
         [Tooltip("Time taken for one half of the transition to complete")]
         public float transitionTime;
 
         [Header("Image Components")]
-        [SerializeField] private RectTransform parentMaskRect;
-        [SerializeField] private RectTransform maskRect;
-        [SerializeField] private RectTransform transitionCanvas;
-        [SerializeField] private Image parentMaskImage;
-        [SerializeField] private CutoutMaskUI cutoutMask;
+        [SerializeField]
+        private RectTransform parentMaskRect;
+
+        [SerializeField]
+        private RectTransform maskRect;
+
+        [SerializeField]
+        private RectTransform transitionCanvas;
+
+        [SerializeField]
+        private Image parentMaskImage;
+
+        [SerializeField]
+        private CutoutMaskUI cutoutMask;
 
         private void Awake()
         {
@@ -68,9 +80,13 @@ namespace MaskTransitions
             maskRect.sizeDelta = Vector2.zero;
             parentMaskRect.sizeDelta = Vector2.zero;
 
-            maskRect.DOSizeDelta(new Vector2(maxSize, maxSize), animationTime).SetEase(Ease.InOutQuad);
+            maskRect
+                .DOSizeDelta(new Vector2(maxSize, maxSize), animationTime)
+                .SetEase(Ease.InOutQuad);
             if (rotation)
-                maskRect.DORotate(new Vector3(0, 0, 180), animationTime, RotateMode.FastBeyond360).SetEase(Ease.InOutQuad);
+                maskRect
+                    .DORotate(new Vector3(0, 0, 180), animationTime, RotateMode.FastBeyond360)
+                    .SetEase(Ease.InOutQuad);
         }
 
         Tween StartAnimationForLoad(float? totalTime = null)
@@ -81,19 +97,22 @@ namespace MaskTransitions
             parentMaskRect.sizeDelta = Vector2.zero;
             maskRect.rotation = Quaternion.identity;
 
-            Tween blueTweenSize = maskRect.DOSizeDelta(new Vector2(maxSize, maxSize), animationTime).SetEase(Ease.InOutQuad);
+            Tween blueTweenSize = maskRect
+                .DOSizeDelta(new Vector2(maxSize, maxSize), animationTime)
+                .SetEase(Ease.InOutQuad);
 
             Sequence animationSequence = DOTween.Sequence().Join(blueTweenSize);
 
             if (rotation)
             {
-                Tween blueTweenRotate = maskRect.DORotate(new Vector3(0, 0, 180), animationTime).SetEase(Ease.InOutQuad);
+                Tween blueTweenRotate = maskRect
+                    .DORotate(new Vector3(0, 0, 180), animationTime)
+                    .SetEase(Ease.InOutQuad);
                 animationSequence.Join(blueTweenRotate);
             }
 
             return animationSequence;
         }
-
 
         void EndAnimation(float? totalTime = null)
         {
@@ -103,9 +122,13 @@ namespace MaskTransitions
             parentMaskRect.sizeDelta = Vector2.zero;
             parentMaskRect.rotation = Quaternion.identity;
 
-            parentMaskRect.DOSizeDelta(new Vector2(maxSize, maxSize), animationTime).SetEase(Ease.InOutQuad);
+            parentMaskRect
+                .DOSizeDelta(new Vector2(maxSize, maxSize), animationTime)
+                .SetEase(Ease.InOutQuad);
             if (rotation)
-                parentMaskRect.DORotate(new Vector3(0, 0, 180), animationTime).SetEase(Ease.InOutQuad);
+                parentMaskRect
+                    .DORotate(new Vector3(0, 0, 180), animationTime)
+                    .SetEase(Ease.InOutQuad);
         }
         #endregion
 
@@ -128,7 +151,7 @@ namespace MaskTransitions
         }
         #endregion
 
-        #region Transition With Scene Load 
+        #region Transition With Scene Load
         public void LoadLevel(string sceneName, float delay = 0f)
         {
             StartCoroutine(LoadLevelWithWait(sceneName, delay));
@@ -159,21 +182,38 @@ namespace MaskTransitions
         {
             StartCoroutine(PlayStartHalfTransitionWithDelay(transitionTime, startDelay));
         }
+
         public void PlayEndHalfTransition(float transitionTime, float startDelay = 0f)
         {
             StartCoroutine(PlayEndHalfTransitionWithDelay(transitionTime, startDelay));
         }
+
         IEnumerator PlayStartHalfTransitionWithDelay(float transitionTime, float startDelay)
         {
             yield return new WaitForSeconds(startDelay);
             StartAnimation(transitionTime);
         }
+
         IEnumerator PlayEndHalfTransitionWithDelay(float transitionTime, float startDelay)
         {
             yield return new WaitForSeconds(startDelay);
             EndAnimation(transitionTime);
         }
         #endregion
+
+        private void OnEnable()
+        {
+            SceneManager.sceneUnloaded += OnSceneUnloaded;
+        }
+
+        private void OnDisable()
+        {
+            SceneManager.sceneUnloaded -= OnSceneUnloaded;
+        }
+
+        void OnSceneUnloaded(Scene scene)
+        {
+            DOTween.KillAll();
+        }
     }
 }
-

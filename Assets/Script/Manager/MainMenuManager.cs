@@ -66,18 +66,30 @@ public class MainMenuManager : MonoBehaviour
     public Color classicBG = new Color32(15, 15, 15, 255);
     public float colorTransitionSpeed = 5f;
 
+    [Header("UI Sounds")]
+    public AudioSource uiAudioSource;
+    public AudioClip buttonClickSFX;
+    public AudioClip levelscchangeSFX;
+    public AudioClip sceneloadSFX;
+    private Coroutine sceneLoadSFXCoroutine;
+    private Coroutine slideCoroutine;
+
+
     private void Awake()
     {
         Instance = this;
         speedDirection = Vector3.forward;
 
         PLayButton.onClick.AddListener(() =>
-        {
-            if (currentMode == GameMode.Levels)
-                TransitionManager.Instance.LoadLevel("Game");
-            else
-                TransitionManager.Instance.LoadLevel("ClassicGame");
-        });
+{
+    PlayClickSound(); // 🔊 SƏS
+
+    if (currentMode == GameMode.Levels)
+        TransitionManager.Instance.LoadLevel("Game");
+    else
+        TransitionManager.Instance.LoadLevel("ClassicGame");
+});
+
     }
 
     private void Start()
@@ -97,6 +109,10 @@ public class MainMenuManager : MonoBehaviour
         UpdateLevelUI(level, PlayerPrefs.GetInt("currentPoints", 0), level + 5);
         ApplyTargetGlow();
         Invoke(nameof(SpawnBall), 0f);
+        if (sceneLoadSFXCoroutine != null)
+            StopCoroutine(sceneLoadSFXCoroutine);
+
+        sceneLoadSFXCoroutine = StartCoroutine(DelayedSceneLoadSFX(0.25f));
     }
 
     private void Update()
@@ -125,12 +141,26 @@ public class MainMenuManager : MonoBehaviour
 
     public void ToggleGameMode()
     {
+        PlayLevelsSFX(); // 🔊 dərhal çal
+
+        if (sceneLoadSFXCoroutine != null)
+            StopCoroutine(sceneLoadSFXCoroutine);
+
+        sceneLoadSFXCoroutine = StartCoroutine(DelayedSceneLoadSFX(0.25f));
+
         if (currentMode == GameMode.Levels)
             currentMode = GameMode.Classic;
         else
             currentMode = GameMode.Levels;
 
         SaveAndRefresh();
+    }
+
+
+    IEnumerator DelayedSceneLoadSFX(float delay)
+    {
+        yield return new WaitForSecondsRealtime(delay); // Time.timeScale-dən asılı deyil
+        PlaySceneLoadSFX(); // 🔊 gecikmiş səs
     }
 
     private void SaveAndRefresh()
@@ -162,8 +192,11 @@ public class MainMenuManager : MonoBehaviour
         int level = PlayerPrefs.GetInt("level", 1);
         UpdateLevelUI(level, PlayerPrefs.GetInt("currentPoints", 0), level + 5);
 
-        StopAllCoroutines();
-        StartCoroutine(SlideHighlight());
+        if (slideCoroutine != null)
+            StopCoroutine(slideCoroutine);
+
+        slideCoroutine = StartCoroutine(SlideHighlight());
+
     }
 
     IEnumerator SlideHighlight()
@@ -270,5 +303,23 @@ public class MainMenuManager : MonoBehaviour
             if (playerSr != null)
                 playerSr.color = playerGlowColor;
         }
+    }
+
+    void PlayClickSound()
+    {
+        if (uiAudioSource != null && buttonClickSFX != null)
+            uiAudioSource.PlayOneShot(buttonClickSFX);
+    }
+
+    void PlayLevelsSFX()
+    {
+        if (uiAudioSource != null && levelscchangeSFX != null)
+            uiAudioSource.PlayOneShot(levelscchangeSFX);
+    }
+
+    void PlaySceneLoadSFX()
+    {
+        if (uiAudioSource != null && sceneloadSFX != null)
+            uiAudioSource.PlayOneShot(sceneloadSFX);
     }
 }

@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using DG.Tweening;
 using MaskTransitions;
 using TMPro;
 using UnityEngine;
@@ -89,38 +90,37 @@ public class GameManager : MonoBehaviour
         // --- DÜYMƏLƏRİN FUNKSİYALARI ---
         resStartBTN.onClick.AddListener(() =>
         {
+            UISoundManager.Instance?.PlayClick();
             Time.timeScale = 1f;
             TransitionManager.Instance.LoadLevel("Game");
         });
 
         menuBTN.onClick.AddListener(() =>
         {
+            UISoundManager.Instance?.PlayClick();
             Time.timeScale = 1f;
             TransitionManager.Instance.LoadLevel("Menu");
         });
 
         // Skins düyməsinə basanda menyunu aç
-        if (skinsButton != null)
+        skinsButton.onClick.AddListener(() =>
         {
-            skinsButton.onClick.AddListener(OpenSkinsMenu);
-        }
-
-        // Skins düyməsinə basanda SkinsManager-dəki OpenSkins funksiyasını çağır
-        if (skinsButton != null)
-        {
-            skinsButton.onClick.AddListener(OpenSkinsMenu);
-        }
+            OpenSkinsMenu();
+        });
 
         // No Thanks düyməsi basılanda birbaşa GameOver-ə keç
         if (noThanksBtn != null)
-            noThanksBtn.onClick.AddListener(CloseSecondChanceAndShowGameOver);
+            noThanksBtn.onClick.AddListener(() =>
+            {
+                UISoundManager.Instance?.PlayClick();
+                CloseSecondChanceAndShowGameOver();
+            });
 
-        // Ulduzla davam etmə düyməsi
-        if (useStarBtn != null)
+        useStarBtn.onClick.AddListener(() =>
         {
-            useStarBtn.onClick.RemoveAllListeners(); // Təhlükəsizlik üçün əvvəlkiləri sil
-            useStarBtn.onClick.AddListener(HandleContinueButton); // Yeni funksiyanı bağla
-        }
+            UISoundManager.Instance?.PlayClick();
+            HandleContinueButton();
+        });
     }
 
     private void Update()
@@ -351,6 +351,8 @@ public class GameManager : MonoBehaviour
                 LevelManager.Instance.GetCurrentLevelPercentage() + " COMPLETE";
         }
 
+        UISoundManager.Instance?.PlayOverSFX();
+
         if (secondChancePanel != null)
         {
             Time.timeScale = 0f;
@@ -477,14 +479,54 @@ public class GameManager : MonoBehaviour
         if (isAnimating)
             return;
 
-        gameoverPOPUP.SetActive(true);
-        // Əsas animasiyanı (böyümə və şəffaflıq) başlat
-        StartCoroutine(Animate(true));
+        gameoverPOPUP.SetActive(true); // Paneli açırıq
 
-        // ⭐ YENİ HİSSƏ: Animasiya müddəti qədər gözlə və sonra Free Gift-i çağır
+        StartCoroutine(Animate(true)); // Panelin öz animasiyası
+        UISoundManager.Instance?.PlaySceneSFX();
         StartCoroutine(ShowGiftAfterGameOver());
-
         StartCoroutine(FreezeTimeDelayed());
+    }
+
+    void AnimateButtonsSequentially()
+    {
+        Button[] buttons = { resStartBTN, menuBTN, skinsButton };
+
+        float delayBetweenButtons = 0.12f;
+        float slideDistance = 120f;
+
+        for (int i = 0; i < buttons.Length; i++)
+        {
+            Button btn = buttons[i];
+            if (btn == null)
+                continue;
+
+            RectTransform rt = btn.GetComponent<RectTransform>();
+
+            // Final mövqe
+            Vector3 finalPos = rt.localPosition;
+
+            // Başlanğıc mövqe (soldan)
+            rt.localPosition = finalPos + Vector3.left * slideDistance;
+
+            // Scale & Alpha sıfır
+            rt.localScale = Vector3.zero;
+
+            CanvasGroup cg = btn.GetComponent<CanvasGroup>();
+            if (cg == null)
+                cg = btn.gameObject.AddComponent<CanvasGroup>();
+            cg.alpha = 0f;
+
+            float delay = i * delayBetweenButtons;
+
+            // 🔹 Slide soldan sağa
+            rt.DOLocalMove(finalPos, 0.45f).SetDelay(delay).SetEase(Ease.OutExpo).SetUpdate(true);
+
+            // 🔹 Pop scale
+            rt.DOScale(Vector3.one, 0.4f).SetDelay(delay).SetEase(Ease.OutBack).SetUpdate(true);
+
+            // 🔹 Fade in
+            cg.DOFade(1f, 0.25f).SetDelay(delay).SetUpdate(true);
+        }
     }
 
     IEnumerator ShowGiftAfterGameOver()
@@ -529,9 +571,35 @@ public class GameManager : MonoBehaviour
             canvasGroup.alpha = endA;
         gameoverPOPUP.transform.localScale = endS;
 
+        if (open)
+        {
+            ResetButtons(); // əvvəl gizlədirik
+            AnimateButtonsSequentially(); // sonra animasiya
+        }
+
         if (!open)
             gameoverPOPUP.SetActive(false);
         isAnimating = false;
+    }
+
+    void ResetButtons()
+    {
+        Button[] buttons = { resStartBTN, menuBTN, skinsButton };
+
+        foreach (var btn in buttons)
+        {
+            if (btn == null)
+                continue;
+
+            btn.transform.DOKill(true);
+
+            RectTransform rt = btn.GetComponent<RectTransform>();
+            rt.localScale = Vector3.zero;
+
+            CanvasGroup cg = btn.GetComponent<CanvasGroup>();
+            if (cg != null)
+                cg.alpha = 0f;
+        }
     }
 
     public void OpenSkinsMenu()
@@ -578,7 +646,6 @@ public class GameManager : MonoBehaviour
 
     IEnumerator FreezeTimeDelayed()
     {
-        // Animasiya müddəti qədər (0.25s) gözləyirik. 
         // Realtime istifadə edirik ki, əgər zaman artıq yavaşlayıbsa problem olmasın.
         yield return new WaitForSecondsRealtime(animDuration);
 
