@@ -54,6 +54,7 @@ public class TaskManager : MonoBehaviour
     {
         if (getGiftButton == null || giftPanel == null || timerText == null)
             return;
+
         string lastTimeStr = PlayerPrefs.GetString(lastGiftKey, string.Empty);
 
         if (string.IsNullOrEmpty(lastTimeStr))
@@ -73,14 +74,21 @@ public class TaskManager : MonoBehaviour
         }
         else
         {
+            // --- BU HİSSƏDƏ DÜZƏLİŞ EDİLDİ ---
             isReady = false;
             getGiftButton.interactable = false;
-            timerText.text = string.Format(
-                "{0:D2}:{1:D2}:{2:D2}",
-                remaining.Hours,
-                remaining.Minutes,
-                remaining.Seconds
-            );
+            timerText.text = string.Format("{0:D2}:{1:D2}:{2:D2}", remaining.Hours, remaining.Minutes, remaining.Seconds);
+
+            // Hədiyyə hazır deyil: Animasiyaları dayandır və rəngi sabit saxla
+            if (buttonGlow != null)
+            {
+                buttonGlow.DOKill(); // Animasiyanı dayandır
+                buttonGlow.color = new Color(0.3f, 0.3f, 0.3f, 0.5f); // Sabit tünd və bir az şəffaf rəng
+            }
+
+            // Düymənin titrəmə animasiyasını da dayandırırıq
+            getGiftButton.transform.DOKill();
+            getGiftButton.transform.localScale = Vector3.one;
         }
     }
 
@@ -106,11 +114,17 @@ public class TaskManager : MonoBehaviour
         // ƏGƏR buttonGlow-a haradasa animasiya verirsinizsə, onu da belə bağlayın:
         if (buttonGlow != null)
         {
+            // Əvvəlcə obyektin rəngini tam Ağ (parlaq) edirik
+            buttonGlow.color = Color.white;
+
+            // Köhnə animasiyanı təmizləyirik
             buttonGlow.DOKill(true);
 
+            // Yan-sön effekti: Ağ rəngdən Boz rəngə (və ya yarı-şəffaf boza)
             buttonGlow
-                .DOFade(1f, 0.5f)
-                .SetLoops(-1, LoopType.Yoyo)
+                .DOColor(new Color(0.5f, 0.5f, 0.5f, 1f), 0.6f) // 0.6 saniyədə boza keçir
+                .SetEase(Ease.InOutSine) // Keçidin daha yumşaq olması üçün
+                .SetLoops(-1, LoopType.Yoyo) // Sonsuz olaraq yan-sön edir
                 .SetUpdate(true)
                 .SetLink(buttonGlow.gameObject, LinkBehaviour.KillOnDestroy);
         }
@@ -147,14 +161,20 @@ public class TaskManager : MonoBehaviour
     public void OnGetButtonClick()
     {
         getGiftButton.interactable = false;
+
+        // Düymə və Glow animasiyalarını dərhal dayandırırıq
         getGiftButton.transform.DOKill();
         getGiftButton.transform.localScale = Vector3.one;
 
-        // TAYMERİ YALNIZ BURADA SIFIRLAYIRIQ
+        if (buttonGlow != null)
+        {
+            buttonGlow.DOKill();
+            buttonGlow.color = new Color(0.3f, 0.3f, 0.3f, 0.5f); // Sabit rəngə qaytar
+        }
+
         PlayerPrefs.SetString(lastGiftKey, DateTime.Now.ToString());
         isReady = false;
 
-        // Ulduzları uçur (Məsələn 15 dənə)
         StartStarAnimationOnly(15);
     }
 

@@ -177,13 +177,13 @@ public class MainMenuManager : MonoBehaviour
 
         if (bestScoreText != null)
         {
-            int best =
-                (currentMode == GameMode.Classic)
-                    ? PlayerPrefs.GetInt("ClassicBestScore", 0)
-                    : PlayerPrefs.GetInt("BestScore", 0);
-            bestScoreText.text = best.ToString();
-        }
+            int best = (currentMode == GameMode.Classic)
+                ? PlayerPrefs.GetInt("ClassicBestScore", 0)
+                : PlayerPrefs.GetInt("BestScore", 0);
 
+            // Birbaşa yazdırmırıq, animasiya ilə göstəririk
+            AnimateScore(bestScoreText, best);
+        }
         if (levelsText != null)
             levelsText.color = (currentMode == GameMode.Levels) ? Color.green : Color.white;
         if (classicText != null)
@@ -321,5 +321,24 @@ public class MainMenuManager : MonoBehaviour
     {
         if (uiAudioSource != null && sceneloadSFX != null)
             uiAudioSource.PlayOneShot(sceneloadSFX);
+    }
+
+    private void AnimateScore(TMP_Text textElement, int targetValue)
+    {
+        if (textElement == null) return;
+
+        // Əvvəlki animasiyanı dayandır
+        DOTween.Kill(textElement);
+
+        int currentDisplayValue = 0;
+
+        // 0.8 saniyə ərzində 0-dan targetValue-ya qədər sayır
+        DOTween.To(() => currentDisplayValue, x => currentDisplayValue = x, targetValue, 0.8f)
+            .OnUpdate(() =>
+            {
+                textElement.text = currentDisplayValue.ToString();
+            })
+            .SetEase(Ease.OutQuad) // Sonda bir az yavaşlaması üçün
+            .SetUpdate(true); // Oyun dayansa belə işləsin
     }
 }

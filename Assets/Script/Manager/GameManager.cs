@@ -167,6 +167,11 @@ public class GameManager : MonoBehaviour
             Vector3 hitPos = hit.collider.transform.position;
             float distToCenter = Vector2.Distance(hit.point, hitPos);
             bool isPerfect = distToCenter < 0.18f;
+            if (UISoundManager.Instance != null)
+            {
+                // GetComboCount() funksiyan artıq var idi
+                UISoundManager.Instance.PlayHandleSFX(GetComboCount());
+            }
 
             if (isPerfect)
             {
@@ -341,6 +346,7 @@ public class GameManager : MonoBehaviour
     {
         LoseWiggle.Instance.PlayLoseAnimation();
         CameraShake.Instance.ShakeCamera(1.1f, 0.5f);
+        UISoundManager.Instance?.PlayOverSFX();
 
         yield return new WaitForSecondsRealtime(0.75f);
 
@@ -350,8 +356,6 @@ public class GameManager : MonoBehaviour
             levelProgressPercentText.text =
                 LevelManager.Instance.GetCurrentLevelPercentage() + " COMPLETE";
         }
-
-        UISoundManager.Instance?.PlayOverSFX();
 
         if (secondChancePanel != null)
         {
