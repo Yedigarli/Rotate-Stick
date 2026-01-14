@@ -538,9 +538,19 @@ public class GameManager : MonoBehaviour
         // GameOver animasiyası (0.25s) bitənə qədər gözlə
         yield return new WaitForSecondsRealtime(animDuration + 0.1f);
 
+        // 1. Öncə Free Gift (Hədiyyə) statusunu yoxla və aç
         if (TaskManager.Instance != null)
         {
             TaskManager.Instance.CheckGiftStatus();
+        }
+
+        // 2. Bir az fasilə ver ki, panellər üst-üstə minməsin (opsional)
+        yield return new WaitForSecondsRealtime(0.2f);
+
+        // 3. Missiya panelini aç
+        if (MissionManager.Instance != null)
+        {
+            MissionManager.Instance.OpenPanel();
         }
     }
 

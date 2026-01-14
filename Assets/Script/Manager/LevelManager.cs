@@ -146,9 +146,19 @@ public class LevelManager : MonoBehaviour
     {
         currentPoints += amount;
         totalScore += amount;
+        // Əgər vuruş Perfect-dirsə (GameManager-dən 2 xal gəlirsə)
+        if (amount >= 2)
+        {
+            if (MissionManager.Instance != null)
+            {
+                MissionManager.Instance.AddPerfect(); // Bu MissionManager-dəki 1-ci missiyanı artıracaq
+            }
+        }
 
         if (scoreText != null)
             scoreText.text = totalScore.ToString();
+
+        MissionManager.Instance.AddScore(amount);
 
         // ⭐ REKORDU YADDA SAXLA
         CheckBestScore();
@@ -178,11 +188,15 @@ public class LevelManager : MonoBehaviour
                 // ⭐ REKORD ÜÇÜN ULDUZ VER
                 if (StarManager.Instance != null)
                 {
-                    StarManager.Instance.AddStar(bestScoreStarReward);
+                    // Artıq AddStar-ı burada çağırmırıq, çünki StartStarAnimationWithRandomReward özü artırır
                     if (taskManager != null)
                     {
-                        taskManager.starAmount = bestScoreStarReward;
-                        taskManager.OnGetButtonClick();
+                        // DÜZƏLİŞ: OnGetButtonClick yerinə birbaşa animasiya funksiyasını çağırırıq
+                        // Bu funksiya taymeri sıfırlamır!
+                        taskManager.StartStarAnimation_NoTimer(
+                            bestScoreStarReward,
+                            bestScoreStarReward
+                        );
                     }
                 }
 
@@ -208,6 +222,11 @@ public class LevelManager : MonoBehaviour
         PlayerPrefs.SetInt("currentPoints", currentPoints);
         PlayerPrefs.Save();
 
+        if (MissionManager.Instance != null)
+        {
+            MissionManager.Instance.AddLevel(); // Bu 2-ci indeksdəki missiyanı 1 artıracaq
+        }
+
         // ⭐ ULDUZ ARTIMINI BURADAN SİLDİK (StarManager.Instance.AddStar hissəsini)
         // Sadəcə animasiyanı çağırırıq, ulduzlar uçub hədəfə çatanda özü artacaq.
         if (taskManager != null)
@@ -216,7 +235,7 @@ public class LevelManager : MonoBehaviour
 
             // Animasiyanı başla, amma Free Gift vaxtını sıfırlama!
             // Bunun üçün aşağıdakı yeni funksiyanı çağıracağıq:
-            taskManager.StartStarAnimationOnly(levelUpStarReward);
+            taskManager.StartStarAnimation_NoTimer(bestScoreStarReward, bestScoreStarReward);
         }
 
         UpdateLevelTexts();
@@ -239,15 +258,22 @@ public class LevelManager : MonoBehaviour
 
         if (type == "Perfect")
         {
+            // ⭐ MISSİYA BURADA ÇAĞIRILMALIDIR
+            if (MissionManager.Instance != null)
+            {
+                MissionManager.Instance.AddPerfect();
+            }
+
             selectedWord =
                 combo >= 5
-                    ? insaneWords[Random.Range(0, insaneWords.Length)]
-                    : perfectWords[Random.Range(0, perfectWords.Length)];
+                    ? insaneWords[UnityEngine.Random.Range(0, insaneWords.Length)]
+                    : perfectWords[UnityEngine.Random.Range(0, perfectWords.Length)];
+
             selectedColor = combo >= 5 ? new Color(2f, 0f, 2f) : perfectColor;
         }
         else if (type == "Nice")
         {
-            selectedWord = niceWords[Random.Range(0, niceWords.Length)];
+            selectedWord = niceWords[UnityEngine.Random.Range(0, niceWords.Length)];
             selectedColor = niceColor;
         }
 

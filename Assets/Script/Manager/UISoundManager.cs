@@ -10,6 +10,8 @@ public class UISoundManager : MonoBehaviour
     public AudioClip sceneSFX;
     public AudioClip overSFX;
     public AudioClip handleSFX; // Handle səsi
+    public AudioClip upstarSFX;
+
 
     private Coroutine sceneLoadSFXCoroutine;
     private Coroutine overSFXCoroutine;
@@ -33,6 +35,12 @@ public class UISoundManager : MonoBehaviour
     {
         if (audioSource != null && clickSFX != null)
             audioSource.PlayOneShot(clickSFX);
+    }
+
+    public void PlayStarSFX()
+    {
+        if (audioSource != null && upstarSFX != null)
+            audioSource.PlayOneShot(upstarSFX);
     }
 
     // --- SCENE LOAD SƏSİ ---
