@@ -38,12 +38,16 @@ public class TaskManager : MonoBehaviour
     private string lastGiftKey = "FreeGift_Daily_Timer";
 
     private int starsReachedTarget = 0;
+    private bool isReadyStateActive = false; // Animasiyanın sonsuz dövrəyə girməməsi üçün kontrol
 
     private void Awake()
     {
         Instance = this;
-        giftPanel.gameObject.SetActive(false);
-        giftPanel.anchoredPosition = new Vector2(-1200f, giftPanel.anchoredPosition.y);
+        if (giftPanel != null)
+        {
+            giftPanel.gameObject.SetActive(false);
+            giftPanel.anchoredPosition = new Vector2(-1200f, giftPanel.anchoredPosition.y);
+        }
 
         if (rewardText != null && starEnd != null)
         {
@@ -63,20 +67,30 @@ public class TaskManager : MonoBehaviour
     {
         if (getGiftButton == null || timerText == null)
             return;
+
         string lastTimeStr = PlayerPrefs.GetString(lastGiftKey, string.Empty);
+
+        // Əgər heç vaxt götürülməyibsə
         if (string.IsNullOrEmpty(lastTimeStr))
         {
-            SetReady();
+            if (!isReadyStateActive)
+                SetReady();
             return;
         }
 
         if (DateTime.TryParse(lastTimeStr, out DateTime lastTime))
         {
             TimeSpan remaining = TimeSpan.FromHours(giftCooldownHours) - (DateTime.Now - lastTime);
+
             if (remaining.TotalSeconds <= 0)
-                SetReady();
+            {
+                if (!isReadyStateActive)
+                    SetReady();
+            }
             else
             {
+                // Cooldown davam edir
+                isReadyStateActive = false;
                 getGiftButton.interactable = false;
                 timerText.text = string.Format(
                     "{0:D2}:{1:D2}:{2:D2}",
@@ -84,17 +98,26 @@ public class TaskManager : MonoBehaviour
                     remaining.Minutes,
                     remaining.Seconds
                 );
+
                 if (buttonGlow != null)
                     buttonGlow.color = new Color(0.3f, 0.3f, 0.3f, 0.5f);
+
+                getGiftButton.transform.DOKill(); // Cooldown zamanı animasiyanı dayandır
             }
         }
     }
 
     private void SetReady()
     {
+        if (getGiftButton == null)
+            return;
+
+        isReadyStateActive = true;
         getGiftButton.interactable = true;
         timerText.text = "CLAIM GIFT!";
+
         getGiftButton.transform.DOKill();
+        getGiftButton.transform.localScale = Vector3.one; // Miqyası sıfırla
         getGiftButton
             .transform.DOPunchScale(Vector3.one * 0.15f, 1f, 5)
             .SetLoops(-1)
@@ -103,19 +126,31 @@ public class TaskManager : MonoBehaviour
 
     public void CheckGiftStatus()
     {
+        if (giftPanel == null)
+            return;
         giftPanel.gameObject.SetActive(true);
         giftPanel.DOAnchorPosX(0f, 0.6f).SetEase(Ease.OutBack).SetUpdate(true);
     }
 
     public void OnGetButtonClick()
     {
-        // ⏰ YALNIZ FREE GIFT BURADA SIFIRLANSIN
-        PlayerPrefs.SetString(lastGiftKey, DateTime.Now.ToString());
+        isReadyStateActive = false; // Statusu sıfırla
+        if (getGiftButton != null)
+        {
+            getGiftButton.interactable = false;
+            getGiftButton.transform.DOKill();
+            getGiftButton.transform.localScale = Vector3.one;
+        }
+        UISoundManager.Instance?.PlayStarSFX();
 
-        StartStarAnimationWithRandomReward(30, 50, getGiftButton.transform);
+        PlayerPrefs.SetString(lastGiftKey, DateTime.Now.ToString());
+        StartStarAnimationWithRandomReward(
+            30,
+            50,
+            getGiftButton != null ? getGiftButton.transform : null
+        );
     }
 
-    // ⭐ Dinamik Start Point Əlavə Olundu
     public void StartStarAnimationWithRandomReward(
         int visualAmount,
         int realReward,
@@ -137,12 +172,14 @@ public class TaskManager : MonoBehaviour
         }
     }
 
-    // LevelUp üçün animasiya (Free Gift vaxtını sıfırlamayan)
     public void StartStarAnimationOnly(int amount) =>
         StartStarAnimationWithRandomReward(amount, amount);
 
     private void ShowCoin(float delay, int rewardAmount, int totalStars, Transform actualStart)
     {
+        if (starPrefab == null || actualStart == null || starEnd == null)
+            return;
+
         var star = Instantiate(starPrefab, starParent);
         star.transform.position = actualStart.position;
         star.transform.localScale = Vector3.zero;
@@ -162,13 +199,20 @@ public class TaskManager : MonoBehaviour
         s.OnComplete(() =>
         {
             starsReachedTarget++;
-            starEnd.DOKill(true);
-            starEnd.DOPunchScale(Vector3.one * 0.2f, 0.2f).SetUpdate(true);
+            if (starEnd != null)
+            {
+                starEnd.DOKill(true);
+                starEnd.DOPunchScale(Vector3.one * 0.2f, 0.2f).SetUpdate(true);
+            }
+
             if (StarManager.Instance != null)
                 StarManager.Instance.AddStar(rewardAmount);
+
             UpdateRewardDisplay(rewardAmount);
+
             if (starsReachedTarget >= totalStars)
                 FinalizeRewardDisplay();
+
             Destroy(star);
         });
     }
@@ -208,8 +252,31 @@ public class TaskManager : MonoBehaviour
 
     private void FinalizeRewardDisplay()
     {
-        DOVirtual.DelayedCall(1f, () => rewardText.gameObject.SetActive(false)).SetUpdate(true);
+        if (rewardText == null)
+            return;
+        DOVirtual
+            .DelayedCall(
+                1f,
+                () =>
+                {
+                    if (rewardText != null)
+                        rewardText.gameObject.SetActive(false);
+                }
+            )
+            .SetUpdate(true);
     }
 
-    private void OnDisable() => DOTween.KillAll();
+    private void OnDisable()
+    {
+        if (giftPanel != null)
+            giftPanel.DOKill();
+
+        if (getGiftButton != null && getGiftButton.transform != null)
+            getGiftButton.transform.DOKill();
+
+        if (rewardText != null && rewardText.transform != null)
+            rewardText.transform.DOKill();
+
+        isReadyStateActive = false;
+    }
 }

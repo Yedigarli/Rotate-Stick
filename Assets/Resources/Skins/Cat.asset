@@ -18,5 +18,5 @@ MonoBehaviour:
   menuYOffset: 0.238
   gameScale: {x: 1, y: 1, z: 1}
   gameYOffset: 0.242
-  price: 40
+  price: 100
   unlockedByDefault: 0

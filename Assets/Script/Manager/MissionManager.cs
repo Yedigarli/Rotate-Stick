@@ -26,8 +26,8 @@ public class MissionManager : MonoBehaviour
     private bool isCompleted = false;
 
     // Görəv siyahısı
-    private string[] missionNames = { "SCORE 200 POINTS", "GET 5 PERFECTS", "REACH 3 LEVELS" };
-    private int[] goals = { 200, 5, 3 };
+    private string[] missionNames = { "SCORE 200 POINTS", "GET 10 PERFECTS", "REACH 3 LEVELS" };
+    private int[] goals = { 200, 10, 3 };
     private int[] rewards = { 100, 80, 150 };
 
     private void Awake()
@@ -143,6 +143,7 @@ public class MissionManager : MonoBehaviour
                 claimButton.transform
             );
         }
+        UISoundManager.Instance?.PlayStarSFX();
 
         claimButton.transform.DOKill(true);
         claimButton.transform.localScale = Vector3.one;

@@ -64,7 +64,7 @@ public class LevelManager : MonoBehaviour
             Instance = this;
 
         level = PlayerPrefs.GetInt("level", 1);
-        pointsToNextLevel = level + 5;
+        pointsToNextLevel = level + 7;
 
         statusText?.gameObject.SetActive(false);
 
@@ -215,7 +215,7 @@ public class LevelManager : MonoBehaviour
         currentPoints = 0;
         targetFillAmount = 0;
 
-        pointsToNextLevel = level + 5;
+        pointsToNextLevel = level + 7;
         PlayerPrefs.SetInt("level", level);
         PlayerPrefs.Save();
 
@@ -352,8 +352,15 @@ public class LevelManager : MonoBehaviour
 
     public string GetCurrentLevelPercentage()
     {
+        // pointsToNextLevel 0 olarsa, bölmə xətası verməməsi üçün yoxlama
+        if (pointsToNextLevel <= 0) return "0%";
+
         float percentage = ((float)currentPoints / pointsToNextLevel) * 100f;
-        return Mathf.RoundToInt(percentage).ToString() + "%";
+
+        // 100-dən yuxarı çıxmaması üçün Clamp əlavə edirik
+        int finalValue = Mathf.Clamp(Mathf.RoundToInt(percentage), 0, 100);
+
+        return finalValue.ToString() + "%";
     }
 
     public void SpawnLevelUpEffect()

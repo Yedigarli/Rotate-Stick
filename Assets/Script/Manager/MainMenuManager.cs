@@ -34,6 +34,7 @@ public class MainMenuManager : MonoBehaviour
     public GameObject target;
     public GameObject ball;
     public Button PLayButton;
+    public TMP_Text PlayButtonText;
 
     [Header("Movement")]
     public float currentSpeed = 50f;
@@ -74,22 +75,29 @@ public class MainMenuManager : MonoBehaviour
     private Coroutine sceneLoadSFXCoroutine;
     private Coroutine slideCoroutine;
 
-
     private void Awake()
     {
         Instance = this;
         speedDirection = Vector3.forward;
 
         PLayButton.onClick.AddListener(() =>
-{
-    PlayClickSound(); // 🔊 SƏS
+        {
+            PlayClickSound(); // 🔊 SƏS
 
-    if (currentMode == GameMode.Levels)
-        TransitionManager.Instance.LoadLevel("Game");
-    else
-        TransitionManager.Instance.LoadLevel("ClassicGame");
-});
-
+            if (currentMode == GameMode.Levels)
+            {
+                // Levels rejimi üçündürsə, oyunu başlat
+                TransitionManager.Instance.LoadLevel("Game");
+                PlayButtonText.text = "Play";
+                PLayButton.interactable = true; // Hər ehtimala qarşı aktiv et
+            }
+            else
+            {
+                // Classic rejimi hələ hazır deyil
+                PLayButton.interactable = false;
+                PlayButtonText.text = "Coming Soon";
+            }
+        });
     }
 
     private void Start()
@@ -106,7 +114,7 @@ public class MainMenuManager : MonoBehaviour
         }
 
         int level = PlayerPrefs.GetInt("level", 1);
-        UpdateLevelUI(level, PlayerPrefs.GetInt("currentPoints", 0), level + 5);
+        UpdateLevelUI(level, PlayerPrefs.GetInt("currentPoints", 0), level + 7);
         ApplyTargetGlow();
         Invoke(nameof(SpawnBall), 0f);
         if (sceneLoadSFXCoroutine != null)
@@ -156,7 +164,6 @@ public class MainMenuManager : MonoBehaviour
         SaveAndRefresh();
     }
 
-
     IEnumerator DelayedSceneLoadSFX(float delay)
     {
         yield return new WaitForSecondsRealtime(delay); // Time.timeScale-dən asılı deyil
@@ -177,9 +184,10 @@ public class MainMenuManager : MonoBehaviour
 
         if (bestScoreText != null)
         {
-            int best = (currentMode == GameMode.Classic)
-                ? PlayerPrefs.GetInt("ClassicBestScore", 0)
-                : PlayerPrefs.GetInt("BestScore", 0);
+            int best =
+                (currentMode == GameMode.Classic)
+                    ? PlayerPrefs.GetInt("ClassicBestScore", 0)
+                    : PlayerPrefs.GetInt("BestScore", 0);
 
             // Birbaşa yazdırmırıq, animasiya ilə göstəririk
             AnimateScore(bestScoreText, best);
@@ -190,13 +198,23 @@ public class MainMenuManager : MonoBehaviour
             classicText.color = (currentMode == GameMode.Classic) ? Color.red : Color.white;
 
         int level = PlayerPrefs.GetInt("level", 1);
-        UpdateLevelUI(level, PlayerPrefs.GetInt("currentPoints", 0), level + 5);
+        UpdateLevelUI(level, PlayerPrefs.GetInt("currentPoints", 0), level + 7);
+
+        if (currentMode == GameMode.Classic)
+        {
+            PlayButtonText.text = "Coming Soon";
+            PLayButton.interactable = false;
+        }
+        else
+        {
+            PlayButtonText.text = "Play";
+            PLayButton.interactable = true;
+        }
 
         if (slideCoroutine != null)
             StopCoroutine(slideCoroutine);
 
         slideCoroutine = StartCoroutine(SlideHighlight());
-
     }
 
     IEnumerator SlideHighlight()
@@ -243,21 +261,29 @@ public class MainMenuManager : MonoBehaviour
         if (nextLevelText != null)
             nextLevelText.text = (level + 1).ToString();
 
-        float fillAmount = (float)points / totalRequired;
-
         if (percentageText != null)
-            percentageText.text = Mathf.RoundToInt(fillAmount * 100f) + "%";
+        {
+            if (LevelManager.Instance != null)
+                percentageText.text = LevelManager.Instance.GetCurrentLevelPercentage();
+            else
+            {
+                float fallbackFill = (totalRequired > 0) ? (float)points / totalRequired : 0;
+                percentageText.text = Mathf.RoundToInt(fallbackFill * 100f) + "%";
+            }
+        }
+
+        float fill = (totalRequired > 0) ? (float)points / totalRequired : 0;
+        if (progressBarFill != null)
+        {
+            progressBarFill.DOKill();
+            progressBarFill.DOFillAmount(fill, 0.5f).SetUpdate(true);
+            progressBarFill.color = levelColors[currentIndex];
+        }
 
         if (levelCircle != null)
             levelCircle.color = levelColors[currentIndex];
         if (nextLevelCircle != null)
             nextLevelCircle.color = levelColors[nextIndex];
-
-        if (progressBarFill != null)
-        {
-            progressBarFill.fillAmount = fillAmount;
-            progressBarFill.color = levelColors[currentIndex];
-        }
 
         // Topun rəngini də buna görə yeniləyirik
         ballGlowColor = levelColors[currentIndex];
@@ -325,7 +351,8 @@ public class MainMenuManager : MonoBehaviour
 
     private void AnimateScore(TMP_Text textElement, int targetValue)
     {
-        if (textElement == null) return;
+        if (textElement == null)
+            return;
 
         // Əvvəlki animasiyanı dayandır
         DOTween.Kill(textElement);
@@ -333,7 +360,8 @@ public class MainMenuManager : MonoBehaviour
         int currentDisplayValue = 0;
 
         // 0.8 saniyə ərzində 0-dan targetValue-ya qədər sayır
-        DOTween.To(() => currentDisplayValue, x => currentDisplayValue = x, targetValue, 0.8f)
+        DOTween
+            .To(() => currentDisplayValue, x => currentDisplayValue = x, targetValue, 0.8f)
             .OnUpdate(() =>
             {
                 textElement.text = currentDisplayValue.ToString();

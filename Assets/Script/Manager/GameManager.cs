@@ -12,7 +12,7 @@ public class GameManager : MonoBehaviour
     public static GameManager Instance;
 
     [Header("Speeds")]
-    public float FirstSpeed = 90f;
+    public float FirstSpeed = 250f;
     public float currentSpeed;
     private Vector3 speedDirection = Vector3.forward;
 
