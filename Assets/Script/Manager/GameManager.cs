@@ -167,15 +167,21 @@ public class GameManager : MonoBehaviour
             Vector3 hitPos = hit.collider.transform.position;
             float distToCenter = Vector2.Distance(hit.point, hitPos);
             bool isPerfect = distToCenter < 0.18f;
-            if (UISoundManager.Instance != null)
-            {
-                // GetComboCount() funksiyan artıq var idi
-                UISoundManager.Instance.PlayHandleSFX(GetComboCount());
-            }
 
             if (isPerfect)
             {
                 comboCount++;
+
+                // 🔹 HƏZZ: Kamera effekti
+                Camera.main.DOFieldOfView(65f, 0.1f).OnComplete(() => Camera.main.DOFieldOfView(60f, 0.2f));
+                HitStop();
+
+                // 🔹 HƏZZ: Kombo ilə artan səs tonu və Yüngül Vibrasiya
+                UISoundManager.Instance?.PlayHandleSFX(comboCount);
+
+                // 🔹 HƏZZ: Musiqinin sürətlənməsi
+                UISoundManager.Instance?.UpdateMusicPitch(currentSpeed, FirstSpeed);
+
                 CreateFloatingText(hitPos, "PERFECT!", ballGlowColor, comboCount);
                 PlayBallEffect(hitPos, ballGlowColor);
                 LevelManager.Instance.AddProgress(2);
@@ -183,34 +189,36 @@ public class GameManager : MonoBehaviour
             else
             {
                 comboCount = 0;
+                // Normal vuruşda vibrasiyasız və ya daha sadə səs
+                UISoundManager.Instance?.PlayHandleSFX(0);
                 CreateFloatingText(hitPos, "+1", Color.white);
                 PlayBallEffect(hitPos, Color.white);
                 LevelManager.Instance.AddProgress(1);
             }
 
-            // --- ULDUZ ARTIMI ---
             if (ball != null && ball.ballType == BallType.Star)
             {
-                if (StarManager.Instance != null)
-                    StarManager.Instance.AddStar(1);
+                if (StarManager.Instance != null) StarManager.Instance.AddStar(1);
             }
 
-            // Obyekti dərhal yox edirik və referansı təmizləyirik
             Destroy(hit.collider.gameObject);
             currentBall = null;
 
-            // İstiqaməti dəyiş və sürəti artır
             speedDirection *= -1;
-            currentSpeed += 2.5f;
-
-            // Yeni topu bir az gecikmə ilə yarat
+            // Sürəti artırırıq
+            currentSpeed += 5f / (1f + (currentSpeed * 0.01f));
             Invoke(nameof(SpawnBall), 0.05f);
         }
         else
         {
-            // Heç nəyə dəymədisə - GAME OVER
             StartCoroutine(GameOver());
         }
+    }
+
+    public void HitStop()
+    {
+        Time.timeScale = 0.1f;
+        DOVirtual.DelayedCall(0.05f, () => Time.timeScale = 1f).SetUpdate(true);
     }
 
     void CreateFloatingText(Vector3 pos, string text, Color color, int combo = 0)
@@ -345,8 +353,8 @@ public class GameManager : MonoBehaviour
     IEnumerator GameOver()
     {
         LoseWiggle.Instance.PlayLoseAnimation();
-        CameraShake.Instance.ShakeCamera(1.1f, 0.5f);
         UISoundManager.Instance?.PlayOverSFX();
+        CameraShake.Instance.ShakeCamera(1.1f, 0.5f);
 
         yield return new WaitForSecondsRealtime(0.75f);
 

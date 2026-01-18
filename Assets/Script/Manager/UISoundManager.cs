@@ -5,12 +5,24 @@ public class UISoundManager : MonoBehaviour
 {
     public static UISoundManager Instance;
 
-    public AudioSource audioSource;
+    [Header("Audio Sources")]
+    public AudioSource sfxSource;
+    public AudioSource musicSource;
+
+    [Header("Audio Clips")]
     public AudioClip clickSFX;
     public AudioClip sceneSFX;
     public AudioClip overSFX;
-    public AudioClip handleSFX; // Handle səsi
+    public AudioClip handleSFX;
     public AudioClip upstarSFX;
+
+    [Header("Pitch Settings")]
+    public float maxMusicPitch = 1.15f;
+
+    [Header("Settings State")]
+    public bool isVibrationOn = true;
+    public bool isSoundOn = true;
+    public bool isMusicOn = true;
 
     private Coroutine sceneLoadSFXCoroutine;
     private Coroutine overSFXCoroutine;
@@ -28,84 +40,128 @@ public class UISoundManager : MonoBehaviour
         }
     }
 
-    // --- KLİK SƏSİ ---
+    private void Start()
+    {
+        isVibrationOn = PlayerPrefs.GetInt("VibrationEnabled", 1) == 1;
+        isSoundOn = PlayerPrefs.GetInt("SoundEnabled", 1) == 1;
+        isMusicOn = PlayerPrefs.GetInt("MusicEnabled", 1) == 1;
+
+        ApplyMusicSettings();
+    }
+
+    private void ApplyMusicSettings()
+    {
+        if (musicSource != null)
+        {
+            musicSource.mute = !isMusicOn;
+            if (isMusicOn && !musicSource.isPlaying) musicSource.Play();
+        }
+    }
+
+    // --- 🔹 SFX SƏSLƏRİ (Mute Yoxlaması ilə) ---
     public void PlayClick()
     {
-        if (audioSource != null && clickSFX != null)
-            audioSource.PlayOneShot(clickSFX);
+        if (!isSoundOn || sfxSource == null || clickSFX == null) return;
+        sfxSource.PlayOneShot(clickSFX);
     }
 
     public void PlayStarSFX()
     {
-        if (audioSource != null && upstarSFX != null)
-            audioSource.PlayOneShot(upstarSFX);
+        if (!isSoundOn || sfxSource == null || upstarSFX == null) return;
+        sfxSource.PlayOneShot(upstarSFX);
     }
 
-    // --- SCENE LOAD SƏSİ ---
-    public void PlaySceneSFX()
+    public void PlayHandleSFX(float comboCount)
     {
-        if (sceneSFX == null || audioSource == null)
-            return;
+        if (!isSoundOn || sfxSource == null || handleSFX == null) return;
 
-        if (sceneLoadSFXCoroutine != null)
-            StopCoroutine(sceneLoadSFXCoroutine);
+        float newPitch = 1.0f + (comboCount * 0.05f);
+        sfxSource.pitch = Mathf.Clamp(newPitch, 1f, 1.6f);
+        sfxSource.PlayOneShot(handleSFX);
 
-        sceneLoadSFXCoroutine = StartCoroutine(DelayedSceneLoadSFX(0.25f));
-    }
-
-    private IEnumerator DelayedSceneLoadSFX(float delay)
-    {
-        yield return new WaitForSecondsRealtime(delay);
-        audioSource.PlayOneShot(sceneSFX);
-        sceneLoadSFXCoroutine = null;
+        TriggerLightVibration();
+        StartCoroutine(ResetPitchAfterSound());
     }
 
     public void PlayOverSFX()
     {
-        if (overSFX == null || audioSource == null)
-            return;
+        if (musicSource != null) musicSource.Pause();
+        TriggerHeavyVibration();
 
-        if (overSFXCoroutine != null)
-            StopCoroutine(overSFXCoroutine);
+        if (!isSoundOn || sfxSource == null || overSFX == null) return;
 
+        if (overSFXCoroutine != null) StopCoroutine(overSFXCoroutine);
         overSFXCoroutine = StartCoroutine(DelayedOverSFX(0.1f));
     }
 
     private IEnumerator DelayedOverSFX(float delay)
     {
         yield return new WaitForSecondsRealtime(delay);
-        audioSource.PlayOneShot(overSFX);
-        overSFXCoroutine = null;
+        sfxSource.PlayOneShot(overSFX);
     }
 
-    // public void PlayOverSFX()
-    // {
-    //     if (audioSource != null && overSFX != null)
-    //         audioSource.PlayOneShot(overSFX);
-    // }
-
-    public void PlayHandleSFX(float comboCount)
+    public void PlaySceneSFX()
     {
-        if (audioSource != null && handleSFX != null)
-        {
-            // Əsas ton 1.0f-dir.
-            // Hər combo artdıqca tonu 0.05 vahid artırırıq (maksimum 1.5-ə qədər)
-            float newPitch = 1.0f + (comboCount * 0.05f);
-            audioSource.pitch = Mathf.Clamp(newPitch, 1f, 1.5f);
+        if (!isSoundOn || sfxSource == null || sceneSFX == null) return;
+        if (sceneLoadSFXCoroutine != null) StopCoroutine(sceneLoadSFXCoroutine);
+        sceneLoadSFXCoroutine = StartCoroutine(DelayedSceneLoadSFX(0.25f));
+    }
 
-            audioSource.PlayOneShot(handleSFX);
-
-            // Səsi çıxarandan sonra tonu normala qaytarırıq ki, digər səslər xarab olmasın
-            // (PlayOneShot-dan dərhal sonra pitch-i sıfırlamaq olar)
-            StartCoroutine(ResetPitchAfterSound());
-        }
+    private IEnumerator DelayedSceneLoadSFX(float delay)
+    {
+        yield return new WaitForSecondsRealtime(delay);
+        sfxSource.PlayOneShot(sceneSFX);
     }
 
     private IEnumerator ResetPitchAfterSound()
     {
-        // Səs faylının bitməsini gözləməyə ehtiyac yoxdur,
-        // çünki PlayOneShot mövcud pitch ilə işə düşür.
         yield return null;
-        audioSource.pitch = 1.0f;
+        if (sfxSource != null) sfxSource.pitch = 1.0f;
+    }
+
+    // --- 🔹 MUSİQİ SÜRƏTİ ---
+    public void UpdateMusicPitch(float currentSpeed, float firstSpeed)
+    {
+        if (musicSource == null) return;
+        float speedDiff = currentSpeed - firstSpeed;
+        float pitchIncr = speedDiff / 400f;
+        musicSource.pitch = Mathf.Clamp(1f + pitchIncr, 1f, maxMusicPitch);
+    }
+
+    // --- 🔹 VİBRASİYA ---
+    public void TriggerLightVibration()
+    {
+        if (!isVibrationOn) return;
+        #if UNITY_ANDROID || UNITY_IOS
+        Handheld.Vibrate();
+        #endif
+    }
+
+    public void TriggerHeavyVibration()
+    {
+        if (!isVibrationOn) return;
+        #if UNITY_ANDROID || UNITY_IOS
+        Handheld.Vibrate();
+        #endif
+    }
+
+    // --- 🔹 AYARLARI DƏYİŞDİR ---
+    public void ToggleVibration()
+    {
+        isVibrationOn = !isVibrationOn;
+        PlayerPrefs.SetInt("VibrationEnabled", isVibrationOn ? 1 : 0);
+    }
+
+    public void ToggleSound()
+    {
+        isSoundOn = !isSoundOn;
+        PlayerPrefs.SetInt("SoundEnabled", isSoundOn ? 1 : 0);
+    }
+
+    public void ToggleMusic()
+    {
+        isMusicOn = !isMusicOn;
+        PlayerPrefs.SetInt("MusicEnabled", isMusicOn ? 1 : 0);
+        ApplyMusicSettings();
     }
 }

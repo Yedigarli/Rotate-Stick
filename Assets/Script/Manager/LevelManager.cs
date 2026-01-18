@@ -246,7 +246,7 @@ public class LevelManager : MonoBehaviour
         if (GameManager.Instance != null)
         {
             GameManager.Instance.currentSpeed = GameManager.Instance.FirstSpeed;
-            GameManager.Instance.FirstSpeed += 5f;
+            GameManager.Instance.FirstSpeed += 2.5f;
             PlayerPrefs.SetFloat("firstspeed", GameManager.Instance.FirstSpeed);
         }
     }
@@ -353,7 +353,8 @@ public class LevelManager : MonoBehaviour
     public string GetCurrentLevelPercentage()
     {
         // pointsToNextLevel 0 olarsa, bölmə xətası verməməsi üçün yoxlama
-        if (pointsToNextLevel <= 0) return "0%";
+        if (pointsToNextLevel <= 0)
+            return "0%";
 
         float percentage = ((float)currentPoints / pointsToNextLevel) * 100f;
 
