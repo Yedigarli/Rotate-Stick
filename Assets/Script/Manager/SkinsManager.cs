@@ -83,8 +83,6 @@ public class SkinsManager : MonoBehaviour
         if (isAnimating)
             return;
 
-        UISoundManager.Instance?.PlayClick(); // 🔊
-
         // Target mövqeyini ilk dəfə açılışda götür (Menyu üçün)
         if (targetObject != null && !hasOriginalPos)
         {
@@ -118,8 +116,6 @@ public class SkinsManager : MonoBehaviour
     {
         if (isAnimating)
             return;
-
-        UISoundManager.Instance?.PlayClick(); // 🔊
 
         if (GameManager.Instance != null)
         {

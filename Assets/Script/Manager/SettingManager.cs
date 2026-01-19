@@ -18,7 +18,7 @@ public class SettingsManager : MonoBehaviour
     public Button musicToggleButton;
 
     [Header("Icons & Sprites")]
-    public Image vibrationIcon; 
+    public Image vibrationIcon;
     public Image soundIcon;
     public Image musicIcon;
 
@@ -34,9 +34,10 @@ public class SettingsManager : MonoBehaviour
         Instance = this;
         settingsPanel.SetActive(false);
 
-        settingbutton.onClick.AddListener(() => { UISoundManager.Instance?.PlayClick(); OpenSettings(); });
-        closeSettingButton.onClick.AddListener(() => { UISoundManager.Instance?.PlayClick(); CloseSettings(); });
-        
+        // PlayClick() çağırışları silindi
+        settingbutton.onClick.AddListener(OpenSettings);
+        closeSettingButton.onClick.AddListener(CloseSettings);
+
         vibrationToggleButton.onClick.AddListener(ToggleVibrationAction);
         soundToggleButton.onClick.AddListener(ToggleSoundAction);
         musicToggleButton.onClick.AddListener(ToggleMusicAction);
@@ -50,7 +51,6 @@ public class SettingsManager : MonoBehaviour
     public void ToggleSoundAction()
     {
         UISoundManager.Instance?.ToggleSound();
-        UISoundManager.Instance?.PlayClick(); 
         UpdateAllUI();
     }
 
@@ -82,7 +82,7 @@ public class SettingsManager : MonoBehaviour
     public void OpenSettings()
     {
         if (isAnimating) return;
-        UpdateAllUI(); 
+        UpdateAllUI();
         settingsPanel.SetActive(true);
         StartCoroutine(Animate(true));
     }

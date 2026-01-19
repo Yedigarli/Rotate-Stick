@@ -82,8 +82,6 @@ public class MainMenuManager : MonoBehaviour
 
         PLayButton.onClick.AddListener(() =>
         {
-            PlayClickSound(); // 🔊 SƏS
-
             if (currentMode == GameMode.Levels)
             {
                 // Levels rejimi üçündürsə, oyunu başlat
