@@ -72,7 +72,6 @@ public class GameManager : MonoBehaviour
     public TMP_Text levelProgressPercentText; // Inspector-da bura yeni yaratdığın mətni at
     private Coroutine freezeCoroutine;
 
-
     private void Awake()
     {
         Instance = this;
@@ -91,14 +90,14 @@ public class GameManager : MonoBehaviour
 
         // --- DÜYMƏLƏRİN FUNKSİYALARI ---
         resStartBTN.onClick.AddListener(() =>
- {
-     if (freezeCoroutine != null)
-         StopCoroutine(freezeCoroutine);
+        {
+            if (freezeCoroutine != null)
+                StopCoroutine(freezeCoroutine);
 
-     Time.timeScale = 1f;
-     isSettingsOpen = false;
-     TransitionManager.Instance.LoadLevel("Game");
- });
+            Time.timeScale = 1f;
+            isSettingsOpen = false;
+            TransitionManager.Instance.LoadLevel("Game");
+        });
 
         menuBTN.onClick.AddListener(() =>
         {
@@ -109,7 +108,6 @@ public class GameManager : MonoBehaviour
             isSettingsOpen = false;
             TransitionManager.Instance.LoadLevel("Menu");
         });
-
 
         // Skins düyməsinə basanda menyunu aç
         skinsButton.onClick.AddListener(() =>
@@ -180,7 +178,9 @@ public class GameManager : MonoBehaviour
                 comboCount++;
 
                 // 🔹 HƏZZ: Kamera effekti
-                Camera.main.DOFieldOfView(65f, 0.1f).OnComplete(() => Camera.main.DOFieldOfView(60f, 0.2f));
+                Camera
+                    .main.DOFieldOfView(65f, 0.1f)
+                    .OnComplete(() => Camera.main.DOFieldOfView(60f, 0.2f));
                 HitStop();
 
                 // 🔹 HƏZZ: Kombo ilə artan səs tonu və Yüngül Vibrasiya
@@ -205,7 +205,8 @@ public class GameManager : MonoBehaviour
 
             if (ball != null && ball.ballType == BallType.Star)
             {
-                if (StarManager.Instance != null) StarManager.Instance.AddStar(1);
+                if (StarManager.Instance != null)
+                    StarManager.Instance.AddStar(1);
             }
 
             Destroy(hit.collider.gameObject);
@@ -495,14 +496,17 @@ public class GameManager : MonoBehaviour
 
     private void GameOverPopUp()
     {
-        if (isAnimating)
-            return;
+        // Animasiya yoxdur, birbaşa açırıq
+        gameoverPOPUP.SetActive(true);
+
+        // CanvasGroup varsa dərhal tam görünən edirik
+        if (canvasGroup != null)
+            canvasGroup.alpha = 1;
+        gameoverPOPUP.transform.localScale = Vector3.one;
 
         ResetButtons();
-        
-        gameoverPOPUP.SetActive(true); // Paneli açırıq
+        AnimateButtonsSequentially(); // Düymələr yenə də bir-bir gəlsin (istəmirsənsə bunu da silə bilərsən)
 
-        StartCoroutine(Animate(true)); // Panelin öz animasiyası
         UISoundManager.Instance?.PlaySceneSFX();
         StartCoroutine(ShowGiftAfterGameOver());
         freezeCoroutine = StartCoroutine(FreezeTimeDelayed());
@@ -519,11 +523,13 @@ public class GameManager : MonoBehaviour
         for (int i = 0; i < buttons.Length; i++)
         {
             Button btn = buttons[i];
-            if (btn == null) continue;
+            if (btn == null)
+                continue;
 
             RectTransform rt = btn.GetComponent<RectTransform>();
             CanvasGroup cg = btn.GetComponent<CanvasGroup>();
-            if (cg == null) cg = btn.gameObject.AddComponent<CanvasGroup>();
+            if (cg == null)
+                cg = btn.gameObject.AddComponent<CanvasGroup>();
 
             // 1. İLKIN VƏZİYYƏTƏ GƏTİR
             // Əvvəlki animasiyaları dayandır
@@ -542,21 +548,13 @@ public class GameManager : MonoBehaviour
 
             // 2. ANİMASİYA BAŞLASIN
             // Yuxarı sürüşmə (Ease.OutBack düymənin yerinə "atılaraq" gəlməsini təmin edir)
-            rt.DOAnchorPos(finalPos, 0.6f)
-                .SetDelay(delay)
-                .SetEase(Ease.OutBack)
-                .SetUpdate(true);
+            rt.DOAnchorPos(finalPos, 0.6f).SetDelay(delay).SetEase(Ease.OutBack).SetUpdate(true);
 
             // Böyümə (Scale)
-            rt.DOScale(Vector3.one, 0.5f)
-                .SetDelay(delay)
-                .SetEase(Ease.OutBack)
-                .SetUpdate(true);
+            rt.DOScale(Vector3.one, 0.5f).SetDelay(delay).SetEase(Ease.OutBack).SetUpdate(true);
 
             // Görünmə (Fade)
-            cg.DOFade(1f, 0.4f)
-                .SetDelay(delay)
-                .SetUpdate(true);
+            cg.DOFade(1f, 0.4f).SetDelay(delay).SetUpdate(true);
         }
     }
 
@@ -581,53 +579,13 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    IEnumerator Animate(bool open)
-    {
-        isAnimating = true;
-        float t = 0f;
-
-        float startA = open ? 0 : 1;
-        float endA = open ? 1 : 0;
-
-        // Popup kiçikdən böyüyə doğru açılsın
-        Vector3 startS = open ? Vector3.one * 0.5f : Vector3.one;
-        Vector3 endS = open ? Vector3.one : Vector3.one * 0.5f;
-
-        while (t < animDuration)
-        {
-            // ⭐ Time.timeScale-dən asılı olmaması üçün 'unscaledDeltaTime'
-            t += Time.unscaledDeltaTime;
-            float p = t / animDuration;
-
-            float curveValue = popupCurve.Evaluate(p);
-
-            if (canvasGroup != null)
-                canvasGroup.alpha = Mathf.Lerp(startA, endA, p);
-            gameoverPOPUP.transform.localScale = Vector3.Lerp(startS, endS, curveValue);
-
-            yield return null;
-        }
-
-        if (canvasGroup != null)
-            canvasGroup.alpha = endA;
-        gameoverPOPUP.transform.localScale = endS;
-
-        if (open)
-        {
-            AnimateButtonsSequentially(); // sonra animasiya
-        }
-
-        if (!open)
-            gameoverPOPUP.SetActive(false);
-        isAnimating = false;
-    }
-
     void ResetButtons()
     {
         Button[] buttons = { resStartBTN, menuBTN, skinsButton };
         foreach (var btn in buttons)
         {
-            if (btn == null) continue;
+            if (btn == null)
+                continue;
 
             btn.transform.DOKill();
 
@@ -636,7 +594,8 @@ public class GameManager : MonoBehaviour
 
             // CanvasGroup varsa dərhal alpha-nı 0 et
             CanvasGroup cg = btn.GetComponent<CanvasGroup>();
-            if (cg == null) cg = btn.gameObject.AddComponent<CanvasGroup>();
+            if (cg == null)
+                cg = btn.gameObject.AddComponent<CanvasGroup>();
             cg.alpha = 0f;
         }
     }

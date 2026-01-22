@@ -4819,7 +4819,7 @@ MonoBehaviour:
     m_PostInfinity: 2
     m_RotationOrder: 4
   noThanksButton: {fileID: 1250274523}
-  noThanksDelay: 1.5
+  noThanksDelay: 1
   canStart: 0
 --- !u!225 &870533637
 CanvasGroup:
@@ -6455,6 +6455,7 @@ GameObject:
   - component: {fileID: 1205305552}
   - component: {fileID: 1205305554}
   - component: {fileID: 1205305553}
+  - component: {fileID: 1205305555}
   m_Layer: 5
   m_Name: ReStart
   m_TagString: Untagged
@@ -6549,7 +6550,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Navigation:
-    m_Mode: 3
+    m_Mode: 0
     m_WrapAround: 0
     m_SelectOnUp: {fileID: 0}
     m_SelectOnDown: {fileID: 0}
@@ -6596,6 +6597,18 @@ MonoBehaviour:
   duration: 0.1
   playClickSound: 1
   triggerVibration: 1
+--- !u!225 &1205305555
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1205305548}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &1219688486
 GameObject:
   m_ObjectHideFlags: 0
@@ -8039,6 +8052,7 @@ GameObject:
   - component: {fileID: 1373773769}
   - component: {fileID: 1373773771}
   - component: {fileID: 1373773770}
+  - component: {fileID: 1373773772}
   m_Layer: 5
   m_Name: menu
   m_TagString: Untagged
@@ -8128,6 +8142,18 @@ MonoBehaviour:
   duration: 0.1
   playClickSound: 1
   triggerVibration: 1
+--- !u!225 &1373773772
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1373773768}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &1387730977
 GameObject:
   m_ObjectHideFlags: 0

@@ -1,12 +1,12 @@
+using DG.Tweening; // DOTween kitabxanası mütləqdir
 using UnityEngine;
 using UnityEngine.EventSystems;
-using DG.Tweening; // DOTween kitabxanası mütləqdir
 
 public class UIButtonFeedback : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
 {
     [Header("Settings")]
     public float scaleDownTo = 0.92f; // Basanda nə qədər kiçilsin
-    public float duration = 0.1f;    // Animasiya sürəti
+    public float duration = 0.1f; // Animasiya sürəti
     public bool playClickSound = true;
     public bool triggerVibration = true;
 
@@ -21,7 +21,10 @@ public class UIButtonFeedback : MonoBehaviour, IPointerDownHandler, IPointerUpHa
     public void OnPointerDown(PointerEventData eventData)
     {
         // 1. Vizual: Kiçilmə effekti (TimeScale-dən asılı deyil)
-        transform.DOScale(originalScale * scaleDownTo, duration).SetUpdate(true).SetEase(Ease.OutQuad);
+        transform
+            .DOScale(originalScale * scaleDownTo, duration)
+            .SetUpdate(true)
+            .SetEase(Ease.OutQuad);
 
         // 2. Səs: Klik səsi
         if (playClickSound)
