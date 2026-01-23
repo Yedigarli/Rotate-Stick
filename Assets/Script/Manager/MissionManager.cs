@@ -8,25 +8,22 @@ public class MissionManager : MonoBehaviour
 {
     public static MissionManager Instance;
 
-    [Header("UI Paneli")]
+    [Header("UI Elements")]
     public RectTransform missionPanel;
-    public TMP_Text missionNameText;
-    public TMP_Text progressText;
+    public TMP_Text missionNameText, progressText, claimButtonText, timerText;
     public Image progressBarFill;
     public Button claimButton;
-    public TMP_Text claimButtonText;
 
-    [Header("Visual Settings")]
-    private float offScreenX = 1500f;
-    private float onScreenX = 0f;
+    [Header("Cooldown Settings")]
+    public float hoursBetweenMissions = 2f; 
+    private bool isWaiting = false;
 
-    [Header("Görev Ayarları")]
-    private int currentMissionIndex = 0;
-    private int currentProgress = 0;
-    private bool isCompleted = false;
+    [Header("Mission Data")]
+    private int currentIdx = 0;
+    private int currentProg = 0;
+    private bool isDone = false;
 
-    // Görəv siyahısı
-    private string[] missionNames = { "SCORE 200 POINTS", "GET 10 PERFECTS", "REACH 3 LEVELS" };
+    private string[] names = { "SCORE 200", "10 PERFECTS", "3 LEVELS" };
     private int[] goals = { 200, 10, 3 };
     private int[] rewards = { 100, 80, 150 };
 
@@ -41,149 +38,138 @@ public class MissionManager : MonoBehaviour
         UpdateUI(false);
     }
 
+    private void Update()
+    {
+        if (isWaiting && currentIdx < names.Length) UpdateTimerUI();
+    }
+
+    private void UpdateTimerUI()
+    {
+        string nextStr = PlayerPrefs.GetString("NextMissionTime", "");
+        if (string.IsNullOrEmpty(nextStr)) return;
+
+        TimeSpan diff = DateTime.Parse(nextStr) - DateTime.Now;
+
+        if (diff.TotalSeconds <= 0)
+        {
+            isWaiting = false;
+            if (timerText != null) timerText.gameObject.SetActive(false);
+            UpdateUI(true);
+        }
+        else if (timerText != null)
+        {
+            timerText.gameObject.SetActive(true);
+            timerText.text = string.Format("{0:D2}:{1:D2}:{2:D2}", diff.Hours, diff.Minutes, diff.Seconds);
+        }
+    }
+
     public void OpenPanel()
     {
         missionPanel.gameObject.SetActive(true);
-        missionPanel.DOKill();
-        missionPanel.DOAnchorPosX(onScreenX, 0.5f).SetEase(Ease.OutBack).SetUpdate(true);
+        missionPanel.DOAnchorPosX(0f, 0.4f).SetEase(Ease.OutBack).SetUpdate(true);
     }
 
     public void ClosePanel()
     {
-        missionPanel.DOKill();
-        missionPanel
-            .DOAnchorPosX(offScreenX, 0.5f)
-            .SetEase(Ease.InBack)
-            .SetUpdate(true)
+        missionPanel.DOAnchorPosX(1500f, 0.4f).SetEase(Ease.InBack).SetUpdate(true)
             .OnComplete(() => missionPanel.gameObject.SetActive(false));
     }
 
-    // --- Görəv Artımı Funksiyaları ---
-    public void AddScore(int amt)
-    {
-        if (currentMissionIndex == 0)
-            ProgressLogic(amt);
-    }
-
-    public void AddPerfect()
-    {
-        // Cari missiya 1-ci (Perfect) missiyadırsa artır
-        if (currentMissionIndex == 1)
-        {
-            ProgressLogic(1);
-            Debug.Log("Perfect Missiyası Artırıldı: " + currentProgress); // Yoxlamaq üçün
-        }
-    }
-
-    public void AddLevel()
-    {
-        if (currentMissionIndex == 2)
-            ProgressLogic(1);
-    }
+    public void AddScore(int amt) { if (!isWaiting) ProgressLogic(amt); }
+    public void AddPerfect() { if (currentIdx == 1 && !isWaiting) ProgressLogic(1); }
+    public void AddLevel() { if (currentIdx == 2 && !isWaiting) ProgressLogic(1); }
 
     private void ProgressLogic(int amt)
     {
-        // Əgər bütün missiyalar bitibsə və ya cari missiya tamamlanıbsa, işləmə
-        if (currentMissionIndex >= missionNames.Length || isCompleted)
-            return;
+        if (currentIdx >= names.Length || isDone || isWaiting) return;
 
-        currentProgress += amt;
-
-        // Hədəfə çatdıqda
-        if (currentProgress >= goals[currentMissionIndex])
+        currentProg += amt;
+        if (currentProg >= goals[currentIdx])
         {
-            currentProgress = goals[currentMissionIndex];
-            isCompleted = true;
+            currentProg = goals[currentIdx];
+            isDone = true;
             AnimateClaimButton();
         }
-
         UpdateUI(true);
         SaveState();
     }
 
     private void UpdateUI(bool animate)
     {
-        claimButton.transform.DOKill(true);
-        claimButton.transform.localScale = Vector3.one;
-        if (currentMissionIndex >= missionNames.Length)
+        bool allFinished = currentIdx >= names.Length;
+
+        if (allFinished)
         {
-            missionNameText.text = "ALL MISSIONS DONE!";
+            missionNameText.text = "FINISHED!";
             progressText.text = "100%";
             progressBarFill.fillAmount = 1;
             claimButton.interactable = false;
-            claimButtonText.text = "COMPLETED";
+            claimButtonText.text = "DONE";
+            if (timerText != null) timerText.gameObject.SetActive(false);
             return;
         }
 
-        // Cari görəv məlumatlarını yazdır
-        missionNameText.text = missionNames[currentMissionIndex];
-        progressText.text = currentProgress + "/" + goals[currentMissionIndex];
-        float fill = (float)currentProgress / goals[currentMissionIndex];
-
-        if (animate)
-            progressBarFill.DOFillAmount(fill, 0.4f).SetUpdate(true);
+        if (isWaiting)
+        {
+            missionNameText.text = "????";
+            progressText.text = "LOCKED";
+            progressBarFill.fillAmount = 0;
+            claimButton.interactable = false;
+            claimButtonText.text = "WAIT";
+        }
         else
-            progressBarFill.fillAmount = fill;
+        {
+            missionNameText.text = names[currentIdx];
+            progressText.text = currentProg + "/" + goals[currentIdx];
+            float fill = (float)currentProg / goals[currentIdx];
 
-        claimButton.interactable = isCompleted;
-        claimButtonText.text = isCompleted ? "CLAIM REWARD" : "IN PROGRESS";
+            if (animate) progressBarFill.DOFillAmount(fill, 0.3f).SetUpdate(true);
+            else progressBarFill.fillAmount = fill;
+
+            claimButton.interactable = isDone;
+            claimButtonText.text = isDone ? "CLAIM" : "GO!";
+            if (timerText != null) timerText.gameObject.SetActive(false);
+        }
     }
 
     public void OnClaimClick()
     {
-        if (!isCompleted)
-            return;
+        if (!isDone) return;
 
-        // Mükafat animasiyası (isFreeGift = false olaraq gedəcək)
-        if (TaskManager.Instance != null)
-        {
-            TaskManager.Instance.StartStarAnimation_NoTimer(
-                20,
-                rewards[currentMissionIndex],
-                claimButton.transform
-            );
-        }
+        TaskManager.Instance?.StartStarAnimation_NoTimer(20, rewards[currentIdx], claimButton.transform);
         UISoundManager.Instance?.PlayStarSFX();
 
-        claimButton.transform.DOKill(true);
-        claimButton.transform.localScale = Vector3.one;
+        currentIdx++;
+        currentProg = 0;
+        isDone = false;
+        isWaiting = true;
 
-        // 🔄 NÖVBƏTİ MISSİON MƏLUMATLARINI YENİLƏ
-        isCompleted = false;
-        currentProgress = 0;
-        currentMissionIndex++;
-
-        SaveState(); // Yeni indeksi dərhal yadda saxla
-
-        // UI-ı dərhal yenilə ki, köhnə yazı qalmasın
+        PlayerPrefs.SetString("NextMissionTime", DateTime.Now.AddHours(hoursBetweenMissions).ToString());
+        SaveState();
         UpdateUI(true);
-
-        missionPanel.DOKill();
-        missionPanel.DOShakeAnchorPos(0.3f, 15, 10).SetUpdate(true);
     }
 
     private void AnimateClaimButton()
     {
         claimButton.transform.DOKill();
-        claimButton
-            .transform.DOPunchScale(Vector3.one * 0.1f, 0.5f, 5)
-            .SetLoops(-1)
-            .SetUpdate(true);
+        claimButton.transform.DOPunchScale(Vector3.one * 0.1f, 0.5f, 5).SetLoops(-1).SetUpdate(true);
     }
 
     private void SaveState()
     {
-        PlayerPrefs.SetInt("M_Idx", currentMissionIndex);
-        PlayerPrefs.SetInt("M_Prog", currentProgress);
-        PlayerPrefs.SetInt("M_Done", isCompleted ? 1 : 0);
-        PlayerPrefs.Save();
+        PlayerPrefs.SetInt("M_Idx", currentIdx);
+        PlayerPrefs.SetInt("M_Prog", currentProg);
+        PlayerPrefs.SetInt("M_Done", isDone ? 1 : 0);
     }
 
     private void LoadState()
     {
-        currentMissionIndex = PlayerPrefs.GetInt("M_Idx", 0);
-        currentProgress = PlayerPrefs.GetInt("M_Prog", 0);
-        isCompleted = PlayerPrefs.GetInt("M_Done", 0) == 1;
+        currentIdx = PlayerPrefs.GetInt("M_Idx", 0);
+        currentProg = PlayerPrefs.GetInt("M_Prog", 0);
+        isDone = PlayerPrefs.GetInt("M_Done", 0) == 1;
+
+        string nextStr = PlayerPrefs.GetString("NextMissionTime", "");
+        if (!string.IsNullOrEmpty(nextStr)) isWaiting = DateTime.Now < DateTime.Parse(nextStr);
     }
 
     private void CheckDailyReset()
@@ -192,26 +178,9 @@ public class MissionManager : MonoBehaviour
         if (PlayerPrefs.GetString("M_Date", "") != today)
         {
             PlayerPrefs.SetString("M_Date", today);
-            currentMissionIndex = 0;
-            currentProgress = 0;
-            isCompleted = false;
+            PlayerPrefs.DeleteKey("NextMissionTime");
+            currentIdx = 0; currentProg = 0; isDone = false; isWaiting = false;
             SaveState();
         }
-    }
-
-    [ContextMenu("Reset Missions")] // Inspector-da skriptin üzərinə sağ klikləyib seçə bilərsən
-    public void ResetMissions()
-    {
-        PlayerPrefs.DeleteKey("M_Idx");
-        PlayerPrefs.DeleteKey("M_Prog");
-        PlayerPrefs.DeleteKey("M_Done");
-        PlayerPrefs.DeleteKey("M_Date");
-
-        currentMissionIndex = 0;
-        currentProgress = 0;
-        isCompleted = false;
-
-        Debug.Log("Missiyalar sıfırlandı!");
-        UpdateUI(false);
     }
 }

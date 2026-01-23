@@ -15,6 +15,7 @@ public class UISoundManager : MonoBehaviour
     public AudioClip overSFX;
     public AudioClip handleSFX;
     public AudioClip upstarSFX;
+    public AudioClip levelUpSFX;
 
     [Header("Pitch Settings")]
     public float maxMusicPitch = 1.15f;
@@ -63,6 +64,12 @@ public class UISoundManager : MonoBehaviour
     {
         if (!isSoundOn || sfxSource == null || clickSFX == null) return;
         sfxSource.PlayOneShot(clickSFX);
+    }
+
+    public void PlayLevelUpSFX()
+    {
+        if (!isSoundOn || sfxSource == null || levelUpSFX == null) return;
+        sfxSource.PlayOneShot(levelUpSFX);
     }
 
     public void PlayStarSFX()

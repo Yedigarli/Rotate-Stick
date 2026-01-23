@@ -6183,9 +6183,11 @@ MonoBehaviour:
   missionPanel: {fileID: 538494362}
   missionNameText: {fileID: 1321408447}
   progressText: {fileID: 1154251165}
+  claimButtonText: {fileID: 251788655}
+  timerText: {fileID: 1154251165}
   progressBarFill: {fileID: 2119653474}
   claimButton: {fileID: 1944325705}
-  claimButtonText: {fileID: 251788655}
+  hoursBetweenMissions: 0.25
 --- !u!1 &1141690362
 GameObject:
   m_ObjectHideFlags: 0

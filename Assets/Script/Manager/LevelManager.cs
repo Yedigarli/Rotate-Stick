@@ -1,4 +1,5 @@
 using System.Collections;
+using DG.Tweening;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -131,6 +132,9 @@ public class LevelManager : MonoBehaviour
             GameManager.Instance.baseBallColor = currentLevelThemeColor;
             GameManager.Instance.ballGlowColor = currentLevelThemeColor;
 
+            // Kamera rəngini temanın çox tünd bir tonuna dəyişir (Atmosfer üçün)
+            Camera.main.DOColor(currentLevelThemeColor * 0.2f, 2f);
+
             // Aktiv topun rəngini dəyiş
             GameObject activeBall = GameObject.FindWithTag("Ball");
             if (activeBall != null)
@@ -213,42 +217,57 @@ public class LevelManager : MonoBehaviour
     {
         level++;
         currentPoints = 0;
-        targetFillAmount = 0;
 
-        pointsToNextLevel = level + 7;
+        // Hədəf balın təyini (maksimum 50)
+        pointsToNextLevel = Mathf.Min(10 + (level * 2), 50);
+
         PlayerPrefs.SetInt("level", level);
-        PlayerPrefs.Save();
-
-        PlayerPrefs.SetInt("currentPoints", currentPoints);
+        PlayerPrefs.SetInt("currentPoints", 0);
         PlayerPrefs.Save();
 
         if (MissionManager.Instance != null)
+            MissionManager.Instance.AddLevel();
+
+        // Sürət idarəetməsi (Limitlə)
+        if (GameManager.Instance != null)
         {
-            MissionManager.Instance.AddLevel(); // Bu 2-ci indeksdəki missiyanı 1 artıracaq
+            if (GameManager.Instance.FirstSpeed < 400f)
+                GameManager.Instance.FirstSpeed += 4f;
+
+            GameManager.Instance.currentSpeed = GameManager.Instance.FirstSpeed;
+            PlayerPrefs.SetFloat("firstspeed", GameManager.Instance.FirstSpeed);
         }
 
-        // ⭐ ULDUZ ARTIMINI BURADAN SİLDİK (StarManager.Instance.AddStar hissəsini)
-        // Sadəcə animasiyanı çağırırıq, ulduzlar uçub hədəfə çatanda özü artacaq.
+        UISoundManager.Instance?.PlayLevelUpSFX();
+
+        // Vizual effektləri başlat
+        UpdateLevelTexts();
+        UpdateThemeColor();
+        SpawnLevelUpEffect();
+        ShowStatus("LEVEL UP!", levelUpColor);
+        LevelUpSlowMo();
+
+        // ⭐ ProgressBar-ı animasiya ilə sıfırla
+        StartCoroutine(SmoothLevelTransition());
+
+        // Ulduz mükafatı
         if (taskManager != null)
         {
             taskManager.starAmount = levelUpStarReward;
-
-            // Animasiyanı başla, amma Free Gift vaxtını sıfırlama!
-            // Bunun üçün aşağıdakı yeni funksiyanı çağıracağıq:
-            taskManager.StartStarAnimation_NoTimer(bestScoreStarReward, bestScoreStarReward);
+            taskManager.StartStarAnimation_NoTimer(levelUpStarReward, levelUpStarReward);
         }
+    }
 
-        UpdateLevelTexts();
-        ShowStatus("LEVEL UP!", levelUpColor);
-        UpdateThemeColor();
-        SpawnLevelUpEffect();
+    // Bu funksiya LevelUp-dan xaricdə, aşağıda olmalıdır
+    IEnumerator SmoothLevelTransition()
+    {
+        // 1. Öncə barı tam doldururuq (əgər Lerp hələ çatmayıbsa)
+        targetFillAmount = 1f;
+        yield return new WaitForSecondsRealtime(0.4f); // Slow-mo olduğu üçün Realtime gözləyirik
 
-        if (GameManager.Instance != null)
-        {
-            GameManager.Instance.currentSpeed = GameManager.Instance.FirstSpeed;
-            GameManager.Instance.FirstSpeed += 2.5f;
-            PlayerPrefs.SetFloat("firstspeed", GameManager.Instance.FirstSpeed);
-        }
+        // 2. Barı sıfırlayırıq
+        progressBarFill.fillAmount = 0f;
+        targetFillAmount = 0f;
     }
 
     public void ShowStatusByType(string type, int combo = 0)
@@ -397,5 +416,14 @@ public class LevelManager : MonoBehaviour
         // 5. Təmizlik: Effektləri müəyyən müddətdən sonra yox edirik
         Destroy(leftConfetti, 5f);
         Destroy(rightConfetti, 5f);
+    }
+
+    public void LevelUpSlowMo()
+    {
+        Time.timeScale = 0.4f;
+        DOVirtual.DelayedCall(0.8f, () =>
+        {
+            Time.timeScale = 1f;
+        }).SetUpdate(true); // DOTween tələb olunur
     }
 }
