@@ -1,7 +1,7 @@
-using UnityEngine;
-using UnityEngine.UI;
 using DG.Tweening;
+using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 public class GlowEffect : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
 {
@@ -12,6 +12,7 @@ public class GlowEffect : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
     [Header("Back Glow (Arxa Fondakı İşıq)")]
     public Image glowImage;
     public float glowMaxAlpha = 0.6f;
+
     void Start()
     {
         // 1. Düymənin özünün nəfəs alması (Hop stili)
@@ -23,7 +24,8 @@ public class GlowEffect : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
         // 2. Arxa fonun parlaması
         if (glowImage != null)
         {
-            glowImage.DOFade(glowMaxAlpha, breatheDuration)
+            glowImage
+                .DOFade(glowMaxAlpha, breatheDuration)
                 .From(0.1f)
                 .SetEase(Ease.InOutSine)
                 .SetLoops(-1, LoopType.Yoyo)

@@ -22,9 +22,12 @@ public class SettingsManager : MonoBehaviour
     public Image soundIcon;
     public Image musicIcon;
 
-    public Sprite vibOn, vibOff;
-    public Sprite soundOn, soundOff;
-    public Sprite musicOn, musicOff;
+    public Sprite vibOn,
+        vibOff;
+    public Sprite soundOn,
+        soundOff;
+    public Sprite musicOn,
+        musicOff;
 
     public float animDuration = 0.25f;
     private bool isAnimating = false;
@@ -38,7 +41,7 @@ public class SettingsManager : MonoBehaviour
         settingbutton.onClick.AddListener(OpenSettings);
         closeSettingButton.onClick.AddListener(CloseSettings);
 
-        vibrationToggleButton.onClick.AddListener(ToggleVibrationAction);
+        // vibrationToggleButton.onClick.AddListener(ToggleVibrationAction);
         soundToggleButton.onClick.AddListener(ToggleSoundAction);
         musicToggleButton.onClick.AddListener(ToggleMusicAction);
     }
@@ -61,27 +64,24 @@ public class SettingsManager : MonoBehaviour
         UpdateAllUI();
     }
 
-    public void ToggleVibrationAction()
-    {
-        UISoundManager.Instance?.ToggleVibration();
-        UISoundManager.Instance?.PlayClick();
-        UpdateAllUI();
-        if (UISoundManager.Instance.isVibrationOn) UISoundManager.Instance.TriggerLightVibration();
-    }
-
     private void UpdateAllUI()
     {
         var sm = UISoundManager.Instance;
-        if (sm == null) return;
+        if (sm == null)
+            return;
 
-        if (vibrationIcon) vibrationIcon.sprite = sm.isVibrationOn ? vibOn : vibOff;
-        if (soundIcon) soundIcon.sprite = sm.isSoundOn ? soundOn : soundOff;
-        if (musicIcon) musicIcon.sprite = sm.isMusicOn ? musicOn : musicOff;
+        if (vibrationIcon)
+            vibrationIcon.sprite = sm.isVibrationOn ? vibOn : vibOff;
+        if (soundIcon)
+            soundIcon.sprite = sm.isSoundOn ? soundOn : soundOff;
+        if (musicIcon)
+            musicIcon.sprite = sm.isMusicOn ? musicOn : musicOff;
     }
 
     public void OpenSettings()
     {
-        if (isAnimating) return;
+        if (isAnimating)
+            return;
         UpdateAllUI();
         settingsPanel.SetActive(true);
         StartCoroutine(Animate(true));
@@ -89,7 +89,8 @@ public class SettingsManager : MonoBehaviour
 
     public void CloseSettings()
     {
-        if (isAnimating) return;
+        if (isAnimating)
+            return;
         StartCoroutine(Animate(false));
     }
 
@@ -114,7 +115,8 @@ public class SettingsManager : MonoBehaviour
         canvasGroup.alpha = endAlpha;
         settingsPanel.transform.localScale = endScale;
 
-        if (!open) settingsPanel.SetActive(false);
+        if (!open)
+            settingsPanel.SetActive(false);
         isAnimating = false;
     }
 }

@@ -55,49 +55,54 @@ public class UISoundManager : MonoBehaviour
         if (musicSource != null)
         {
             musicSource.mute = !isMusicOn;
-            if (isMusicOn && !musicSource.isPlaying) musicSource.Play();
+            if (isMusicOn && !musicSource.isPlaying)
+                musicSource.Play();
         }
     }
 
     // --- 🔹 SFX SƏSLƏRİ (Mute Yoxlaması ilə) ---
     public void PlayClick()
     {
-        if (!isSoundOn || sfxSource == null || clickSFX == null) return;
+        if (!isSoundOn || sfxSource == null || clickSFX == null)
+            return;
         sfxSource.PlayOneShot(clickSFX);
     }
 
     public void PlayLevelUpSFX()
     {
-        if (!isSoundOn || sfxSource == null || levelUpSFX == null) return;
+        if (!isSoundOn || sfxSource == null || levelUpSFX == null)
+            return;
         sfxSource.PlayOneShot(levelUpSFX);
     }
 
     public void PlayStarSFX()
     {
-        if (!isSoundOn || sfxSource == null || upstarSFX == null) return;
+        if (!isSoundOn || sfxSource == null || upstarSFX == null)
+            return;
         sfxSource.PlayOneShot(upstarSFX);
     }
 
     public void PlayHandleSFX(float comboCount)
     {
-        if (!isSoundOn || sfxSource == null || handleSFX == null) return;
+        if (!isSoundOn || sfxSource == null || handleSFX == null)
+            return;
 
         float newPitch = 1.0f + (comboCount * 0.05f);
         sfxSource.pitch = Mathf.Clamp(newPitch, 1f, 1.6f);
         sfxSource.PlayOneShot(handleSFX);
-
-        TriggerLightVibration();
         StartCoroutine(ResetPitchAfterSound());
     }
 
     public void PlayOverSFX()
     {
-        if (musicSource != null) musicSource.Pause();
-        TriggerHeavyVibration();
+        if (musicSource != null)
+            musicSource.Pause();
 
-        if (!isSoundOn || sfxSource == null || overSFX == null) return;
+        if (!isSoundOn || sfxSource == null || overSFX == null)
+            return;
 
-        if (overSFXCoroutine != null) StopCoroutine(overSFXCoroutine);
+        if (overSFXCoroutine != null)
+            StopCoroutine(overSFXCoroutine);
         overSFXCoroutine = StartCoroutine(DelayedOverSFX(0.1f));
     }
 
@@ -109,8 +114,10 @@ public class UISoundManager : MonoBehaviour
 
     public void PlaySceneSFX()
     {
-        if (!isSoundOn || sfxSource == null || sceneSFX == null) return;
-        if (sceneLoadSFXCoroutine != null) StopCoroutine(sceneLoadSFXCoroutine);
+        if (!isSoundOn || sfxSource == null || sceneSFX == null)
+            return;
+        if (sceneLoadSFXCoroutine != null)
+            StopCoroutine(sceneLoadSFXCoroutine);
         sceneLoadSFXCoroutine = StartCoroutine(DelayedSceneLoadSFX(0.25f));
     }
 
@@ -123,42 +130,21 @@ public class UISoundManager : MonoBehaviour
     private IEnumerator ResetPitchAfterSound()
     {
         yield return null;
-        if (sfxSource != null) sfxSource.pitch = 1.0f;
+        if (sfxSource != null)
+            sfxSource.pitch = 1.0f;
     }
 
     // --- 🔹 MUSİQİ SÜRƏTİ ---
     public void UpdateMusicPitch(float currentSpeed, float firstSpeed)
     {
-        if (musicSource == null) return;
+        if (musicSource == null)
+            return;
         float speedDiff = currentSpeed - firstSpeed;
         float pitchIncr = speedDiff / 400f;
         musicSource.pitch = Mathf.Clamp(1f + pitchIncr, 1f, maxMusicPitch);
     }
 
-    // --- 🔹 VİBRASİYA ---
-    public void TriggerLightVibration()
-    {
-        if (!isVibrationOn) return;
-        #if UNITY_ANDROID || UNITY_IOS
-        Handheld.Vibrate();
-        #endif
-    }
-
-    public void TriggerHeavyVibration()
-    {
-        if (!isVibrationOn) return;
-        #if UNITY_ANDROID || UNITY_IOS
-        Handheld.Vibrate();
-        #endif
-    }
-
     // --- 🔹 AYARLARI DƏYİŞDİR ---
-    public void ToggleVibration()
-    {
-        isVibrationOn = !isVibrationOn;
-        PlayerPrefs.SetInt("VibrationEnabled", isVibrationOn ? 1 : 0);
-    }
-
     public void ToggleSound()
     {
         isSoundOn = !isSoundOn;

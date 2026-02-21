@@ -31,12 +31,6 @@ public class UIButtonFeedback : MonoBehaviour, IPointerDownHandler, IPointerUpHa
         {
             UISoundManager.Instance?.PlayClick();
         }
-
-        // 3. Hissiyyat: Vibrasiya
-        if (triggerVibration)
-        {
-            UISoundManager.Instance?.TriggerLightVibration();
-        }
     }
 
     // Barmağını düymədən çəkdiyin an bura işləyir

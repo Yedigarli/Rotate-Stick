@@ -228,15 +228,16 @@ public class LevelManager : MonoBehaviour
         if (MissionManager.Instance != null)
             MissionManager.Instance.AddLevel();
 
-        // Sürət idarəetməsi (Limitlə)
-        if (GameManager.Instance != null)
+        if (GameManager.Instance.FirstSpeed < 350f)
         {
-            if (GameManager.Instance.FirstSpeed < 400f)
-                GameManager.Instance.FirstSpeed += 4f;
-
-            GameManager.Instance.currentSpeed = GameManager.Instance.FirstSpeed;
-            PlayerPrefs.SetFloat("firstspeed", GameManager.Instance.FirstSpeed);
+            GameManager.Instance.FirstSpeed += 2f;
         }
+
+        // Yeni level başlayanda sürəti təzələnmiş baz sürətinə qaytarırıq
+        GameManager.Instance.currentSpeed = GameManager.Instance.FirstSpeed;
+
+        // Yadda saxlayırıq
+        PlayerPrefs.SetFloat("firstspeed", GameManager.Instance.FirstSpeed);
 
         UISoundManager.Instance?.PlayLevelUpSFX();
 
@@ -421,9 +422,14 @@ public class LevelManager : MonoBehaviour
     public void LevelUpSlowMo()
     {
         Time.timeScale = 0.4f;
-        DOVirtual.DelayedCall(0.8f, () =>
-        {
-            Time.timeScale = 1f;
-        }).SetUpdate(true); // DOTween tələb olunur
+        DOVirtual
+            .DelayedCall(
+                0.8f,
+                () =>
+                {
+                    Time.timeScale = 1f;
+                }
+            )
+            .SetUpdate(true); // DOTween tələb olunur
     }
 }

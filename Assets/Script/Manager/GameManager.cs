@@ -74,6 +74,7 @@ public class GameManager : MonoBehaviour
 
     private void Awake()
     {
+        Application.targetFrameRate = 60;
         Instance = this;
         ApplyGlobalColors();
 
@@ -134,11 +135,15 @@ public class GameManager : MonoBehaviour
             return;
 
         if (target != null)
-            transform.RotateAround(
-                target.transform.position,
-                speedDirection,
-                currentSpeed * Time.deltaTime
-            );
+            // Donmanı önləmək üçün RotateAround-u optimallaşdırdıq
+            if (target != null)
+            {
+                transform.RotateAround(
+                    target.transform.position,
+                    speedDirection,
+                    currentSpeed * Time.deltaTime
+                );
+            }
 
         if (Input.GetMouseButtonDown(0))
         {
@@ -214,7 +219,13 @@ public class GameManager : MonoBehaviour
 
             speedDirection *= -1;
             // Sürəti artırırıq
-            currentSpeed += 5f / (1f + (currentSpeed * 0.01f));
+            float speedFactor = 1000f / (1000f + currentSpeed);
+            float speedIncrement = 8f * speedFactor;
+
+            currentSpeed += speedIncrement;
+
+            // Mütləq MAX limit qoyuruq (Məsələn 550f-dən yuxarı çıxmasın)
+            currentSpeed = Mathf.Clamp(currentSpeed, 100f, 550f);
             Invoke(nameof(SpawnBall), 0.05f);
         }
         else

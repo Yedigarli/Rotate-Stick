@@ -10,12 +10,15 @@ public class MissionManager : MonoBehaviour
 
     [Header("UI Elements")]
     public RectTransform missionPanel;
-    public TMP_Text missionNameText, progressText, claimButtonText, timerText;
+    public TMP_Text missionNameText,
+        progressText,
+        claimButtonText,
+        timerText;
     public Image progressBarFill;
     public Button claimButton;
 
     [Header("Cooldown Settings")]
-    public float hoursBetweenMissions = 2f; 
+    public float hoursBetweenMissions = 2f;
     private bool isWaiting = false;
 
     [Header("Mission Data")]
@@ -40,26 +43,34 @@ public class MissionManager : MonoBehaviour
 
     private void Update()
     {
-        if (isWaiting && currentIdx < names.Length) UpdateTimerUI();
+        if (isWaiting && currentIdx < names.Length)
+            UpdateTimerUI();
     }
 
     private void UpdateTimerUI()
     {
         string nextStr = PlayerPrefs.GetString("NextMissionTime", "");
-        if (string.IsNullOrEmpty(nextStr)) return;
+        if (string.IsNullOrEmpty(nextStr))
+            return;
 
         TimeSpan diff = DateTime.Parse(nextStr) - DateTime.Now;
 
         if (diff.TotalSeconds <= 0)
         {
             isWaiting = false;
-            if (timerText != null) timerText.gameObject.SetActive(false);
+            if (timerText != null)
+                timerText.gameObject.SetActive(false);
             UpdateUI(true);
         }
         else if (timerText != null)
         {
             timerText.gameObject.SetActive(true);
-            timerText.text = string.Format("{0:D2}:{1:D2}:{2:D2}", diff.Hours, diff.Minutes, diff.Seconds);
+            timerText.text = string.Format(
+                "{0:D2}:{1:D2}:{2:D2}",
+                diff.Hours,
+                diff.Minutes,
+                diff.Seconds
+            );
         }
     }
 
@@ -71,17 +82,35 @@ public class MissionManager : MonoBehaviour
 
     public void ClosePanel()
     {
-        missionPanel.DOAnchorPosX(1500f, 0.4f).SetEase(Ease.InBack).SetUpdate(true)
+        missionPanel
+            .DOAnchorPosX(1500f, 0.4f)
+            .SetEase(Ease.InBack)
+            .SetUpdate(true)
             .OnComplete(() => missionPanel.gameObject.SetActive(false));
     }
 
-    public void AddScore(int amt) { if (!isWaiting) ProgressLogic(amt); }
-    public void AddPerfect() { if (currentIdx == 1 && !isWaiting) ProgressLogic(1); }
-    public void AddLevel() { if (currentIdx == 2 && !isWaiting) ProgressLogic(1); }
+    public void AddScore(int amt)
+    {
+        if (!isWaiting)
+            ProgressLogic(amt);
+    }
+
+    public void AddPerfect()
+    {
+        if (currentIdx == 1 && !isWaiting)
+            ProgressLogic(1);
+    }
+
+    public void AddLevel()
+    {
+        if (currentIdx == 2 && !isWaiting)
+            ProgressLogic(1);
+    }
 
     private void ProgressLogic(int amt)
     {
-        if (currentIdx >= names.Length || isDone || isWaiting) return;
+        if (currentIdx >= names.Length || isDone || isWaiting)
+            return;
 
         currentProg += amt;
         if (currentProg >= goals[currentIdx])
@@ -105,7 +134,8 @@ public class MissionManager : MonoBehaviour
             progressBarFill.fillAmount = 1;
             claimButton.interactable = false;
             claimButtonText.text = "DONE";
-            if (timerText != null) timerText.gameObject.SetActive(false);
+            if (timerText != null)
+                timerText.gameObject.SetActive(false);
             return;
         }
 
@@ -123,20 +153,28 @@ public class MissionManager : MonoBehaviour
             progressText.text = currentProg + "/" + goals[currentIdx];
             float fill = (float)currentProg / goals[currentIdx];
 
-            if (animate) progressBarFill.DOFillAmount(fill, 0.3f).SetUpdate(true);
-            else progressBarFill.fillAmount = fill;
+            if (animate)
+                progressBarFill.DOFillAmount(fill, 0.3f).SetUpdate(true);
+            else
+                progressBarFill.fillAmount = fill;
 
             claimButton.interactable = isDone;
             claimButtonText.text = isDone ? "CLAIM" : "GO!";
-            if (timerText != null) timerText.gameObject.SetActive(false);
+            if (timerText != null)
+                timerText.gameObject.SetActive(false);
         }
     }
 
     public void OnClaimClick()
     {
-        if (!isDone) return;
+        if (!isDone)
+            return;
 
-        TaskManager.Instance?.StartStarAnimation_NoTimer(20, rewards[currentIdx], claimButton.transform);
+        TaskManager.Instance?.StartStarAnimation_NoTimer(
+            20,
+            rewards[currentIdx],
+            claimButton.transform
+        );
         UISoundManager.Instance?.PlayStarSFX();
 
         currentIdx++;
@@ -144,7 +182,10 @@ public class MissionManager : MonoBehaviour
         isDone = false;
         isWaiting = true;
 
-        PlayerPrefs.SetString("NextMissionTime", DateTime.Now.AddHours(hoursBetweenMissions).ToString());
+        PlayerPrefs.SetString(
+            "NextMissionTime",
+            DateTime.Now.AddHours(hoursBetweenMissions).ToString()
+        );
         SaveState();
         UpdateUI(true);
     }
@@ -152,7 +193,10 @@ public class MissionManager : MonoBehaviour
     private void AnimateClaimButton()
     {
         claimButton.transform.DOKill();
-        claimButton.transform.DOPunchScale(Vector3.one * 0.1f, 0.5f, 5).SetLoops(-1).SetUpdate(true);
+        claimButton
+            .transform.DOPunchScale(Vector3.one * 0.1f, 0.5f, 5)
+            .SetLoops(-1)
+            .SetUpdate(true);
     }
 
     private void SaveState()
@@ -169,7 +213,8 @@ public class MissionManager : MonoBehaviour
         isDone = PlayerPrefs.GetInt("M_Done", 0) == 1;
 
         string nextStr = PlayerPrefs.GetString("NextMissionTime", "");
-        if (!string.IsNullOrEmpty(nextStr)) isWaiting = DateTime.Now < DateTime.Parse(nextStr);
+        if (!string.IsNullOrEmpty(nextStr))
+            isWaiting = DateTime.Now < DateTime.Parse(nextStr);
     }
 
     private void CheckDailyReset()
@@ -179,7 +224,10 @@ public class MissionManager : MonoBehaviour
         {
             PlayerPrefs.SetString("M_Date", today);
             PlayerPrefs.DeleteKey("NextMissionTime");
-            currentIdx = 0; currentProg = 0; isDone = false; isWaiting = false;
+            currentIdx = 0;
+            currentProg = 0;
+            isDone = false;
+            isWaiting = false;
             SaveState();
         }
     }
