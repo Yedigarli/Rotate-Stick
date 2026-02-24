@@ -36,114 +36,77 @@ public class GameManager : MonoBehaviour
     public bool isSettingsOpen = false;
     private GameObject currentBall;
     private int comboCount = 0;
-
-    [Header("Second Chance Setup")]
-    public GameObject secondChancePanel;
-    public Button noThanksBtn;
-    public Button useStarBtn; // 10 ulduzla davam etmək üçün
-
-    [Header("GameOver")]
-    public GameObject gameoverPOPUP;
-    public Button resStartBTN;
-    public Button settingBTN;
-    public Button instaBTN;
-    public Button skinsButton;
-    public Button menuBTN;
-    public float animDuration = 0.25f;
-    private bool isAnimating;
-    public CanvasGroup canvasGroup;
-    public AnimationCurve popupCurve = AnimationCurve.EaseInOut(0, 0, 1, 1);
-
-    [Header("Skins Panel Setup")]
-    public GameObject skinsUIObject; // Bura Hierarchy-dəki SkinsUI-ni atacaqsan
-
-    // ⭐ Topun HDR rəngi üçün dəyişən
-    [ColorUsage(showAlpha: true, hdr: true)]
-    public Color ballGlowColor = Color.white;
-
-    [Header("Combo Glow Settings")]
-    [ColorUsage(showAlpha: true, hdr: true)]
-    public Color baseBallColor = Color.white; // Combo 0 olanda topun rəngi
-
-    [ColorUsage(showAlpha: true, hdr: true)]
-    public Color playerGlowColor = Color.cyan; // Çubuğun parıltı rəngi
+    private bool isGameOver = false;
 
     [Header("GameOver UI")]
-    public TMP_Text levelProgressPercentText; // Inspector-da bura yeni yaratdığın mətni at
-    private Coroutine freezeCoroutine;
+    public GameObject gameoverPOPUP;
+    public GameObject secondChancePanel;
+    public TMP_Text levelProgressPercentText;
+    public CanvasGroup canvasGroup;
+    public Button resStartBTN,
+        menuBTN,
+        skinsButton,
+        useStarBtn,
+        noThanksBtn;
+
+    [Header("Colors (HDR)")]
+    [ColorUsage(true, true)]
+    public Color ballGlowColor = Color.white;
+
+    [ColorUsage(true, true)]
+    public Color baseBallColor = Color.white;
+
+    [ColorUsage(true, true)]
+    public Color playerGlowColor = Color.cyan;
+
+    private float animDuration = 0.25f;
 
     private void Awake()
     {
         Application.targetFrameRate = 60;
         Instance = this;
-        ApplyGlobalColors();
 
-        levelProgressPercentText.enabled = false;
+        // PROBLEM 1 HƏLLİ: Progress Text oyun başlayanda bağlı olmalıdır
+        if (levelProgressPercentText != null)
+            levelProgressPercentText.enabled = false;
 
         if (gameoverPOPUP != null)
             gameoverPOPUP.SetActive(false);
-        if (canvasGroup != null)
-            canvasGroup.alpha = 0;
+        if (secondChancePanel != null)
+            secondChancePanel.SetActive(false);
 
         FirstSpeed = PlayerPrefs.GetFloat("firstspeed", FirstSpeed);
         currentSpeed = FirstSpeed;
-        Invoke(nameof(SpawnBall), 0.1f);
 
-        // --- DÜYMƏLƏRİN FUNKSİYALARI ---
-        resStartBTN.onClick.AddListener(() =>
-        {
-            if (freezeCoroutine != null)
-                StopCoroutine(freezeCoroutine);
+        SetupButtons();
+    }
 
-            Time.timeScale = 1f;
-            isSettingsOpen = false;
-            TransitionManager.Instance.LoadLevel("Game");
-        });
+    private void Start()
+    {
+        ApplyGlobalColors();
+        // İlk topu təhlükəsiz şəkildə yarat
+        StartCoroutine(SafeSpawn(0.1f));
+    }
 
-        menuBTN.onClick.AddListener(() =>
-        {
-            if (freezeCoroutine != null)
-                StopCoroutine(freezeCoroutine);
-
-            Time.timeScale = 1f;
-            isSettingsOpen = false;
-            TransitionManager.Instance.LoadLevel("Menu");
-        });
-
-        // Skins düyməsinə basanda menyunu aç
-        skinsButton.onClick.AddListener(() =>
-        {
-            OpenSkinsMenu();
-        });
-
-        // No Thanks düyməsi basılanda birbaşa GameOver-ə keç
-        if (noThanksBtn != null)
-            noThanksBtn.onClick.AddListener(() =>
-            {
-                CloseSecondChanceAndShowGameOver();
-            });
-
-        useStarBtn.onClick.AddListener(() =>
-        {
-            HandleContinueButton();
-        });
+    void SetupButtons()
+    {
+        resStartBTN.onClick.AddListener(() => RestartLevel("Game"));
+        menuBTN.onClick.AddListener(() => RestartLevel("Menu"));
+        skinsButton.onClick.AddListener(OpenSkinsMenu);
+        noThanksBtn?.onClick.AddListener(CloseSecondChanceAndShowGameOver);
+        useStarBtn.onClick.AddListener(HandleContinueButton);
     }
 
     private void Update()
     {
-        if (isSettingsOpen || Time.timeScale == 0)
+        if (isSettingsOpen || Time.timeScale == 0 || target == null || isGameOver)
             return;
 
-        if (target != null)
-            // Donmanı önləmək üçün RotateAround-u optimallaşdırdıq
-            if (target != null)
-            {
-                transform.RotateAround(
-                    target.transform.position,
-                    speedDirection,
-                    currentSpeed * Time.deltaTime
-                );
-            }
+        transform.RotateAround(
+            target.transform.position,
+            speedDirection,
+            currentSpeed * Time.deltaTime
+        );
 
         if (Input.GetMouseButtonDown(0))
         {
@@ -153,12 +116,11 @@ public class GameManager : MonoBehaviour
 
     void ApplyGlobalColors()
     {
-        // Çubuğun rəngini parlat
         if (player != null)
         {
-            SpriteRenderer playerSr = player.GetComponent<SpriteRenderer>();
-            if (playerSr != null)
-                playerSr.color = playerGlowColor;
+            SpriteRenderer sr = player.GetComponent<SpriteRenderer>();
+            if (sr != null)
+                sr.color = playerGlowColor;
         }
     }
 
@@ -173,65 +135,61 @@ public class GameManager : MonoBehaviour
 
         if (hit.collider != null)
         {
-            Ball ball = hit.collider.GetComponent<Ball>();
-            Vector3 hitPos = hit.collider.transform.position;
-            float distToCenter = Vector2.Distance(hit.point, hitPos);
-            bool isPerfect = distToCenter < 0.18f;
-
-            if (isPerfect)
-            {
-                comboCount++;
-
-                // 🔹 HƏZZ: Kamera effekti
-                Camera
-                    .main.DOFieldOfView(65f, 0.1f)
-                    .OnComplete(() => Camera.main.DOFieldOfView(60f, 0.2f));
-                HitStop();
-
-                // 🔹 HƏZZ: Kombo ilə artan səs tonu və Yüngül Vibrasiya
-                UISoundManager.Instance?.PlayHandleSFX(comboCount);
-
-                // 🔹 HƏZZ: Musiqinin sürətlənməsi
-                UISoundManager.Instance?.UpdateMusicPitch(currentSpeed, FirstSpeed);
-
-                CreateFloatingText(hitPos, "PERFECT!", ballGlowColor, comboCount);
-                PlayBallEffect(hitPos, ballGlowColor);
-                LevelManager.Instance.AddProgress(2);
-            }
-            else
-            {
-                comboCount = 0;
-                // Normal vuruşda vibrasiyasız və ya daha sadə səs
-                UISoundManager.Instance?.PlayHandleSFX(0);
-                CreateFloatingText(hitPos, "+1", Color.white);
-                PlayBallEffect(hitPos, Color.white);
-                LevelManager.Instance.AddProgress(1);
-            }
-
-            if (ball != null && ball.ballType == BallType.Star)
-            {
-                if (StarManager.Instance != null)
-                    StarManager.Instance.AddStar(1);
-            }
-
-            Destroy(hit.collider.gameObject);
-            currentBall = null;
-
-            speedDirection *= -1;
-            // Sürəti artırırıq
-            float speedFactor = 1000f / (1000f + currentSpeed);
-            float speedIncrement = 8f * speedFactor;
-
-            currentSpeed += speedIncrement;
-
-            // Mütləq MAX limit qoyuruq (Məsələn 550f-dən yuxarı çıxmasın)
-            currentSpeed = Mathf.Clamp(currentSpeed, 100f, 550f);
-            Invoke(nameof(SpawnBall), 0.05f);
+            ProcessHit(hit);
         }
         else
         {
             StartCoroutine(GameOver());
         }
+    }
+
+    void ProcessHit(RaycastHit2D hit)
+    {
+        Vector3 hitPos = hit.collider.transform.position;
+        float distToCenter = Vector2.Distance(hit.point, hitPos);
+        bool isPerfect = distToCenter < 0.18f;
+
+        if (isPerfect)
+        {
+            comboCount++;
+            Camera.main.DOKill();
+            Camera
+                .main.DOFieldOfView(65f, 0.05f)
+                .OnComplete(() => Camera.main.DOFieldOfView(60f, 0.15f));
+            HitStop();
+            UISoundManager.Instance?.PlayHandleSFX(comboCount);
+            CreateFloatingText(hitPos, GetComboText(), ballGlowColor, comboCount);
+            PlayBallEffect(hitPos, ballGlowColor);
+            LevelManager.Instance?.AddProgress(2);
+        }
+        else
+        {
+            comboCount = 0;
+            UISoundManager.Instance?.PlayHandleSFX(0);
+            CreateFloatingText(hitPos, "+1", Color.white);
+            PlayBallEffect(hitPos, Color.white);
+            LevelManager.Instance?.AddProgress(1);
+        }
+
+        if (hit.collider.TryGetComponent<Ball>(out Ball ball))
+        {
+            if (ball.ballType == BallType.Star)
+                StarManager.Instance?.AddStar(1);
+        }
+
+        // PROBLEM 2 HƏLLİ: Top dərhal məhv edilir və referans sıfırlanır
+        Destroy(hit.collider.gameObject);
+        currentBall = null;
+
+        speedDirection *= -1;
+        currentSpeed = Mathf.Clamp(
+            currentSpeed + (8f * (1000f / (1000f + currentSpeed))),
+            100f,
+            550f
+        );
+
+        // SafeSpawn istifadə edərək ikiqat yaranmanın qarşısını alırıq
+        StartCoroutine(SafeSpawn(0.05f));
     }
 
     public void HitStop()
@@ -310,73 +268,58 @@ public class GameManager : MonoBehaviour
         Destroy(obj);
     }
 
-    void SpawnBall()
+    IEnumerator SafeSpawn(float delay)
     {
-        if (currentBall != null || GameObject.FindGameObjectsWithTag("Ball").Length > 0)
-            return;
+        yield return new WaitForSeconds(delay);
+        // Həm referans, həm də səhnədəki fiziki obyekt yoxlanılır
+        if (currentBall == null && GameObject.FindGameObjectsWithTag("Ball").Length == 0)
+        {
+            SpawnBallAction();
+        }
+    }
 
-        // ... (Spawn mövqeyi kodları dəyişmir) ...
+    void SpawnBallAction()
+    {
         Vector2 pos2D = Random.insideUnitCircle.normalized * radius;
-        Vector3 spawnPos = new Vector3(
-            target.transform.position.x + pos2D.x,
-            target.transform.position.y + pos2D.y,
-            0f
-        );
-        GameObject prefabToSpawn =
-            (Random.value < starBallChance) ? starBallPrefab : normalBallPrefab;
-        currentBall = Instantiate(prefabToSpawn, spawnPos, Quaternion.identity);
+        Vector3 spawnPos = target.transform.position + (Vector3)pos2D;
 
-        SpriteRenderer ballSr = currentBall.GetComponent<SpriteRenderer>();
-        if (ballSr != null)
+        GameObject prefab = (Random.value < starBallChance) ? starBallPrefab : normalBallPrefab;
+        currentBall = Instantiate(prefab, spawnPos, Quaternion.identity);
+
+        if (currentBall.TryGetComponent<SpriteRenderer>(out SpriteRenderer ballSr))
         {
-            if (LevelManager.Instance != null)
-            {
-                // LevelManager-dəki mövcud rəngi birbaşa götürürük
-                baseBallColor = LevelManager.Instance.levelColors[
-                    (PlayerPrefs.GetInt("level", 1) - 1) % LevelManager.Instance.levelColors.Length
-                ];
-            }
             float comboFactor = Mathf.Clamp01(comboCount / 10f);
-
-            // 2. Rəng keçidi (Lerp)
-            Color lerpedColor = Color.Lerp(baseBallColor, ballGlowColor, comboFactor);
-
-            // 3. PARLAMA GÜCÜ (Intensity) - Əsas sirr buradadır!
-            // Combo artdıqca rəngi 2-yə, 4-ə vuraraq onu HDR-da partladırıq
-            // Ekspozisiya (Exposure) artımı simulyasiyası:
             float intensity = 1f + (comboFactor * 0.7f);
-
-            // HDR rəngini formalaşdırırıq
-            Color finalGlowColor = new Color(
-                lerpedColor.r * intensity,
-                lerpedColor.g * intensity,
-                lerpedColor.b * intensity,
-                lerpedColor.a
-            );
-
-            ballSr.color = finalGlowColor;
+            Color lerpedColor = Color.Lerp(baseBallColor, ballGlowColor, comboFactor);
+            ballSr.color = lerpedColor * intensity;
         }
+        currentBall.transform.localScale = Vector3.one * (1f + (Mathf.Min(comboCount, 10) * 0.02f));
+    }
 
-        // Combo artdıqca top cüzi böyüyür (1.0-dan 1.2-yə qədər)
-        float scaleFactor = 1f + (Mathf.Clamp(comboCount, 0, 10) * 0.02f);
-        currentBall.transform.localScale = Vector3.one * scaleFactor;
-
-        Ball ballScript = currentBall.GetComponent<Ball>();
-        if (PlayerPrefs.GetInt("level", 1) > 5 && Random.value < 0.3f)
-        {
-            ballScript.isMoving = true;
-            ballScript.moveSpeed = Random.Range(2f, 4f);
-        }
+    string GetComboText()
+    {
+        if (comboCount >= 10)
+            return "ULTIMATE!!";
+        if (comboCount >= 5)
+            return "UNSTOPPABLE!";
+        if (comboCount >= 3)
+            return "AMAZING!";
+        return "PERFECT!";
     }
 
     IEnumerator GameOver()
     {
-        LoseWiggle.Instance.PlayLoseAnimation();
+        if (isGameOver)
+            yield break;
+        isGameOver = true;
+
+        LoseWiggle.Instance?.PlayLoseAnimation();
         UISoundManager.Instance?.PlayOverSFX();
-        CameraShake.Instance.ShakeCamera(1.1f, 0.5f);
+        CameraShake.Instance?.ShakeCamera(1.1f, 0.5f);
 
         yield return new WaitForSecondsRealtime(0.75f);
 
+        // Progress Text-i yalnız GameOver-da aktivləşdiririk
         if (levelProgressPercentText != null && LevelManager.Instance != null)
         {
             levelProgressPercentText.enabled = true;
@@ -388,14 +331,10 @@ public class GameManager : MonoBehaviour
         {
             Time.timeScale = 0f;
             isSettingsOpen = true;
-
-            // ⭐ BURANI DİQQƏTLƏ YENİLƏ:
-            SecondChanceTimer timerScript = secondChancePanel.GetComponent<SecondChanceTimer>();
-            if (timerScript != null)
-            {
-                timerScript.canStart = true; // İcazəni ver
-                secondChancePanel.SetActive(true); // Paneli aç (OnEnable tetiklenecek)
-            }
+            SecondChanceTimer timer = secondChancePanel.GetComponent<SecondChanceTimer>();
+            if (timer != null)
+                timer.canStart = true;
+            secondChancePanel.SetActive(true);
         }
         else
         {
@@ -406,11 +345,8 @@ public class GameManager : MonoBehaviour
     // GameManager.cs daxilində belə olmalıdır:
     public void CloseSecondChanceAndShowGameOver()
     {
-        // Paneli burada söndürürük ki, skript işini tamamlamış olsun
         if (secondChancePanel != null)
             secondChancePanel.SetActive(false);
-
-        // Əsas GameOver popup-ını açırıq
         GameOverPopUp();
     }
 
@@ -434,15 +370,25 @@ public class GameManager : MonoBehaviour
     private void ResumeFromSecondChance()
     {
         secondChancePanel.SetActive(false);
-        levelProgressPercentText.enabled = false;
+        if (levelProgressPercentText != null)
+            levelProgressPercentText.enabled = false;
         Time.timeScale = 1f;
         isSettingsOpen = false;
+        isGameOver = false;
 
-        // Mövcud topları təmizləyib yenisini yaradırıq ki, çətinlik olmasın
         foreach (GameObject b in GameObject.FindGameObjectsWithTag("Ball"))
             Destroy(b);
 
-        Invoke(nameof(SpawnBall), 0.2f);
+        currentBall = null;
+        StartCoroutine(SafeSpawn(0.2f));
+    }
+
+    public void RestartLevel(string sceneName)
+    {
+        Time.timeScale = 1f;
+        isSettingsOpen = false;
+        isGameOver = false;
+        MaskTransitions.TransitionManager.Instance.LoadLevel(sceneName);
     }
 
     public void PlayBallEffect(Vector3 pos, Color ballColor)
@@ -507,20 +453,14 @@ public class GameManager : MonoBehaviour
 
     private void GameOverPopUp()
     {
-        // Animasiya yoxdur, birbaşa açırıq
         gameoverPOPUP.SetActive(true);
-
-        // CanvasGroup varsa dərhal tam görünən edirik
         if (canvasGroup != null)
             canvasGroup.alpha = 1;
-        gameoverPOPUP.transform.localScale = Vector3.one;
-
         ResetButtons();
-        AnimateButtonsSequentially(); // Düymələr yenə də bir-bir gəlsin (istəmirsənsə bunu da silə bilərsən)
-
+        AnimateButtonsSequentially();
         UISoundManager.Instance?.PlaySceneSFX();
         StartCoroutine(ShowGiftAfterGameOver());
-        freezeCoroutine = StartCoroutine(FreezeTimeDelayed());
+        StartCoroutine(FreezeTimeDelayed());
     }
 
     void AnimateButtonsSequentially()
@@ -613,38 +553,23 @@ public class GameManager : MonoBehaviour
 
     public void OpenSkinsMenu()
     {
-        if (isAnimating)
-            return;
-
-        isSettingsOpen = true; // Bunu əlavə etdik
+        isSettingsOpen = true;
         Time.timeScale = 0f;
-
-        if (SkinsManager.Instance != null)
-        {
-            SkinsManager.Instance.OpenSkins();
-        }
+        SkinsManager.Instance?.OpenSkins();
     }
 
     public void HandleContinueButton()
     {
-        // 1. Əgər oyunçunun hazırda canı varsa, birini işlət və davam et
         if (LifeManager.Instance != null && LifeManager.Instance.currentLives > 0)
         {
             LifeManager.Instance.SpendLife();
             ResumeFromSecondChance();
-            // Debug.Log("Can istifadə edildi.");
         }
-        // 2. Canı yoxdursa, ulduzla 5 can al, birini dərhal işlət və davam et
         else if (StarManager.Instance != null && StarManager.Instance.SpendStars(50))
         {
-            LifeManager.Instance.AddLives(5); // 5 can alırıq
-            LifeManager.Instance.SpendLife(); // Birini indi istifadə edirik (4-ü qalır)
+            LifeManager.Instance.AddLives(5);
+            LifeManager.Instance.SpendLife();
             ResumeFromSecondChance();
-            // Debug.Log("5 can alındı və biri istifadə edildi.");
-        }
-        else
-        {
-            // Debug.Log("Nə can var, nə də kifayət qədər ulduz!");
         }
     }
 
@@ -655,9 +580,7 @@ public class GameManager : MonoBehaviour
 
     IEnumerator FreezeTimeDelayed()
     {
-        // Realtime istifadə edirik ki, əgər zaman artıq yavaşlayıbsa problem olmasın.
         yield return new WaitForSecondsRealtime(animDuration);
-
         Time.timeScale = 0f;
         isSettingsOpen = true;
     }

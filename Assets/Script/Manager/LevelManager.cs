@@ -16,28 +16,23 @@ public class LevelManager : MonoBehaviour
     public TMP_Text statusText;
 
     [Header("Status Colors (HDR)")]
-    [ColorUsage(showAlpha: true, hdr: true)]
-    public Color comboColor = new Color(2f, 0.5f, 0f); // HDR Neon Narıncı
-
-    [ColorUsage(showAlpha: true, hdr: true)]
-    public Color perfectColor = new Color(1.5f, 1.2f, 0f); // HDR Sarı
+    [ColorUsage(true, true)]
+    public Color perfectColor = new Color(1.5f, 1.2f, 0f);
 
     [ColorUsage(true, true)]
-    public Color niceColor = new Color(0f, 1.2f, 1.5f); // HDR Mavi
+    public Color niceColor = new Color(0f, 1.2f, 1.5f);
 
     [ColorUsage(true, true)]
-    public Color levelUpColor = new Color(0.2f, 2f, 0.2f); // HDR Yaşıl
+    public Color levelUpColor = new Color(0.2f, 2f, 0.2f);
 
     [Header("Settings")]
     public int pointsToNextLevel;
-    public float smoothSpeed = 5f; // Barın dolma sürəti
     private int currentPoints = 0;
-    private int totalScore = 0; // Ümumi xal üçün yeni dəyişən
+    private int totalScore = 0;
     private int level;
-    private float targetFillAmount;
 
     [Header("Level Up Effects")]
-    public GameObject levelUpParticlePrefab; // Inspector-dan bura ulduz və ya konfeti effekti atacaqsan
+    public GameObject levelUpParticlePrefab;
 
     [Header("Randomized Words")]
     private string[] perfectWords = { "PERFECT!", "AMAZING!", "FANTASTIC!", "BULLSEYE!" };
@@ -45,19 +40,19 @@ public class LevelManager : MonoBehaviour
     private string[] insaneWords = { "INSANE!", "GODLIKE!", "UNSTOPPABLE!", "MONSTER!" };
 
     [Header("Level Dynamic Colors")]
-    public Image currentLevelCircle; // Inspector-da sol dairəni bura at
-    public Image nextLevelCircle; // Inspector-da sağ dairəni bura at
-    public Color[] levelColors; // Müxtəlif rəngləri bura əlavə et (Göy, Yaşıl, Bənövşəyi və s.)
+    public Image currentLevelCircle;
+    public Image nextLevelCircle;
+    public Color[] levelColors;
 
     private Color currentLevelThemeColor;
     private bool isBestScoreReachedThisSession = false;
 
     [Header("Reward Settings")]
-    public int levelUpStarReward = 20; // Level keçəndə verilən ulduz
-    public int bestScoreStarReward = 10; // Rekord qıranda verilən ulduz
+    public int levelUpStarReward = 20;
+    public int bestScoreStarReward = 10;
 
-    // TaskManager referansı (Animasiyanı başlatmaq üçün)
     private TaskManager taskManager;
+    private GameObject ballReference; // Topu hər dəfə axtarmamaq üçün referans
 
     private void Awake()
     {
@@ -65,11 +60,9 @@ public class LevelManager : MonoBehaviour
             Instance = this;
 
         level = PlayerPrefs.GetInt("level", 1);
-        pointsToNextLevel = level + 7;
+        pointsToNextLevel = 10 + (level * 2); // Başlanğıc hesabı
 
         statusText?.gameObject.SetActive(false);
-
-        // Score başlanğıcda 0 görünsün
         if (scoreText != null)
             scoreText.text = "0";
 
@@ -80,25 +73,9 @@ public class LevelManager : MonoBehaviour
 
     private void Start()
     {
-        // Oyun tam başlayanda rəngləri tətbiq et
-        UpdateThemeColor();
-
+        // TaskManager.Instance varsa birbaşa istifadə etmək daha yaxşıdır
         taskManager = FindFirstObjectByType<TaskManager>();
-    }
-
-    private void Update()
-    {
-        if (progressBarFill != null)
-        {
-            progressBarFill.fillAmount = Mathf.Lerp(
-                progressBarFill.fillAmount,
-                targetFillAmount,
-                Time.deltaTime * smoothSpeed
-            );
-
-            // Barın rəngi seçdiyimiz mövzu rəngində olsun
-            progressBarFill.color = currentLevelThemeColor;
-        }
+        UpdateThemeColor();
     }
 
     public void UpdateThemeColor()
@@ -106,40 +83,34 @@ public class LevelManager : MonoBehaviour
         if (levelColors == null || levelColors.Length == 0)
             return;
 
-        // 1. Cari levelin rəng indeksi
         int currentColorIndex = (level - 1) % levelColors.Length;
         currentLevelThemeColor = levelColors[currentColorIndex];
 
-        // 2. Növbəti levelin rəng indeksi (Dairənin arxa rəngi üçün)
         int nextColorIndex = level % levelColors.Length;
         Color nextLevelThemeColor = levelColors[nextColorIndex];
 
-        // UI-ları rənglə
         if (currentLevelCircle != null)
             currentLevelCircle.color = currentLevelThemeColor;
-
-        // ⭐ BURANI DƏYİŞDİK: Sağ dairə artıq növbəti rəngdə olacaq
         if (nextLevelCircle != null)
             nextLevelCircle.color = nextLevelThemeColor;
-
-        // ProgressBar rəngi cari levelin rəngində qalsın (və ya keçid rəngi edə bilərsən)
         if (progressBarFill != null)
             progressBarFill.color = currentLevelThemeColor;
 
-        // GameManager-i yenilə
         if (GameManager.Instance != null)
         {
             GameManager.Instance.baseBallColor = currentLevelThemeColor;
             GameManager.Instance.ballGlowColor = currentLevelThemeColor;
 
-            // Kamera rəngini temanın çox tünd bir tonuna dəyişir (Atmosfer üçün)
+            Camera.main.DOKill(); // Köhnə animasiyanı dayandır
             Camera.main.DOColor(currentLevelThemeColor * 0.2f, 2f);
 
-            // Aktiv topun rəngini dəyiş
-            GameObject activeBall = GameObject.FindWithTag("Ball");
-            if (activeBall != null)
+            // FindWithTag yerinə referans yoxlaması
+            if (ballReference == null)
+                ballReference = GameObject.FindWithTag("Ball");
+
+            if (ballReference != null)
             {
-                SpriteRenderer sr = activeBall.GetComponent<SpriteRenderer>();
+                SpriteRenderer sr = ballReference.GetComponent<SpriteRenderer>();
                 if (sr != null)
                     sr.color = currentLevelThemeColor;
             }
@@ -150,66 +121,47 @@ public class LevelManager : MonoBehaviour
     {
         currentPoints += amount;
         totalScore += amount;
-        // Əgər vuruş Perfect-dirsə (GameManager-dən 2 xal gəlirsə)
-        if (amount >= 2)
-        {
-            if (MissionManager.Instance != null)
-            {
-                MissionManager.Instance.AddPerfect(); // Bu MissionManager-dəki 1-ci missiyanı artıracaq
-            }
-        }
 
         if (scoreText != null)
             scoreText.text = totalScore.ToString();
 
-        MissionManager.Instance.AddScore(amount);
+        // Barı DOTween ilə doldururuq (Axıcı və performanslı)
+        float fillRatio = (float)currentPoints / pointsToNextLevel;
+        progressBarFill.DOFillAmount(fillRatio, 0.3f).SetEase(Ease.OutQuad);
 
-        // ⭐ REKORDU YADDA SAXLA
+        if (amount >= 2 && MissionManager.Instance != null)
+            MissionManager.Instance.AddPerfect();
+
+        MissionManager.Instance?.AddScore(amount);
         CheckBestScore();
 
+        // Hər xalda yox, yalnız vacib anlarda Save etmək olar.
+        // Amma mütləq lazımdırsa burda qalsın.
         PlayerPrefs.SetInt("currentPoints", currentPoints);
-        PlayerPrefs.Save();
-
-        targetFillAmount = (float)currentPoints / pointsToNextLevel;
 
         if (currentPoints >= pointsToNextLevel)
-        {
             LevelUp();
-        }
     }
 
     // Yeni köməkçi funksiya
     void CheckBestScore()
     {
         int currentBest = PlayerPrefs.GetInt("BestScore", 0);
-
         if (totalScore > currentBest)
         {
             if (!isBestScoreReachedThisSession && currentBest > 0)
             {
                 isBestScoreReachedThisSession = true;
-
-                // ⭐ REKORD ÜÇÜN ULDUZ VER
-                if (StarManager.Instance != null)
-                {
-                    // Artıq AddStar-ı burada çağırmırıq, çünki StartStarAnimationWithRandomReward özü artırır
-                    if (taskManager != null)
-                    {
-                        // DÜZƏLİŞ: OnGetButtonClick yerinə birbaşa animasiya funksiyasını çağırırıq
-                        // Bu funksiya taymeri sıfırlamır!
-                        taskManager.StartStarAnimation_NoTimer(
-                            bestScoreStarReward,
-                            bestScoreStarReward
-                        );
-                    }
-                }
+                if (taskManager != null)
+                    taskManager.StartStarAnimation_NoTimer(
+                        bestScoreStarReward,
+                        bestScoreStarReward
+                    );
 
                 SpawnLevelUpEffect();
                 ShowStatus("NEW BEST!", perfectColor);
             }
-
             PlayerPrefs.SetInt("BestScore", totalScore);
-            PlayerPrefs.Save();
         }
     }
 
@@ -217,41 +169,32 @@ public class LevelManager : MonoBehaviour
     {
         level++;
         currentPoints = 0;
-
-        // Hədəf balın təyini (maksimum 50)
         pointsToNextLevel = Mathf.Min(10 + (level * 2), 50);
 
         PlayerPrefs.SetInt("level", level);
         PlayerPrefs.SetInt("currentPoints", 0);
-        PlayerPrefs.Save();
+        PlayerPrefs.Save(); // Yalnız level artanda diskə yazırıq
 
         if (MissionManager.Instance != null)
             MissionManager.Instance.AddLevel();
 
+        // Sürət artımı
         if (GameManager.Instance.FirstSpeed < 350f)
-        {
             GameManager.Instance.FirstSpeed += 2f;
-        }
 
-        // Yeni level başlayanda sürəti təzələnmiş baz sürətinə qaytarırıq
         GameManager.Instance.currentSpeed = GameManager.Instance.FirstSpeed;
-
-        // Yadda saxlayırıq
         PlayerPrefs.SetFloat("firstspeed", GameManager.Instance.FirstSpeed);
 
         UISoundManager.Instance?.PlayLevelUpSFX();
 
-        // Vizual effektləri başlat
         UpdateLevelTexts();
         UpdateThemeColor();
         SpawnLevelUpEffect();
         ShowStatus("LEVEL UP!", levelUpColor);
         LevelUpSlowMo();
 
-        // ⭐ ProgressBar-ı animasiya ilə sıfırla
         StartCoroutine(SmoothLevelTransition());
 
-        // Ulduz mükafatı
         if (taskManager != null)
         {
             taskManager.starAmount = levelUpStarReward;
@@ -262,13 +205,8 @@ public class LevelManager : MonoBehaviour
     // Bu funksiya LevelUp-dan xaricdə, aşağıda olmalıdır
     IEnumerator SmoothLevelTransition()
     {
-        // 1. Öncə barı tam doldururuq (əgər Lerp hələ çatmayıbsa)
-        targetFillAmount = 1f;
-        yield return new WaitForSecondsRealtime(0.4f); // Slow-mo olduğu üçün Realtime gözləyirik
-
-        // 2. Barı sıfırlayırıq
+        yield return new WaitForSecondsRealtime(0.4f);
         progressBarFill.fillAmount = 0f;
-        targetFillAmount = 0f;
     }
 
     public void ShowStatusByType(string type, int combo = 0)
