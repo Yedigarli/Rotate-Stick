@@ -1,35 +1,48 @@
+using DG.Tweening;
 using TMPro;
 using UnityEngine;
 
 public class FloatingText : MonoBehaviour
 {
-    public float moveSpeed = 150f; // UI üçün daha böyük rəqəm lazımdır
+    public float moveDistance = 150f;
     public float fadeDuration = 1f;
     private TMP_Text textMesh;
+    private Vector3 initialScale;
 
-    [ColorUsage(showAlpha: true, hdr: true)]
-    private Color startColor;
-    private float timer = 0f;
-
-    void Start()
+    void Awake()
     {
         textMesh = GetComponentInChildren<TMP_Text>();
-        if (textMesh != null)
-            startColor = textMesh.color;
-        Destroy(gameObject, fadeDuration);
+        initialScale = transform.localScale;
     }
 
-    void Update()
+    // OnEnable obyekt hər dəfə hovuzdan çıxanda işləyir
+    void OnEnable()
     {
-        // Yuxarı doğru hərəkət
-        transform.position += Vector3.up * moveSpeed * Time.deltaTime;
+        if (textMesh == null)
+            return;
 
-        // Yavaşca şəffaflaşma
-        timer += Time.deltaTime;
-        if (textMesh != null)
-        {
-            float alpha = Mathf.Lerp(1f, 0f, timer / fadeDuration);
-            textMesh.color = new Color(startColor.r, startColor.g, startColor.b, alpha);
-        }
+        // Reset: Köhnə animasiyadan qalan dəyərləri sıfırla
+        textMesh.alpha = 1f;
+        transform.localScale = initialScale;
+
+        // Animasiya
+        transform
+            .DOMoveY(transform.position.y + moveDistance, fadeDuration)
+            .SetEase(Ease.OutCubic);
+
+        textMesh
+            .DOFade(0, fadeDuration)
+            .OnComplete(() =>
+            {
+                // Destroy YOX, SetActive(false) edirik ki, hovuza qayıtsın
+                gameObject.SetActive(false);
+            });
+    }
+
+    void OnDisable()
+    {
+        // Obyekt sönəndə üzərindəki bütün animasiyaları dayandırırıq
+        transform.DOKill();
+        textMesh.DOKill();
     }
 }

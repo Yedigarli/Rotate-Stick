@@ -35,9 +35,9 @@ public class LevelManager : MonoBehaviour
     public GameObject levelUpParticlePrefab;
 
     [Header("Randomized Words")]
-    private string[] perfectWords = { "PERFECT!", "AMAZING!", "FANTASTIC!", "BULLSEYE!" };
-    private string[] niceWords = { "NICE!", "GOOD!", "COOL!", "NOT BAD!" };
-    private string[] insaneWords = { "INSANE!", "GODLIKE!", "UNSTOPPABLE!", "MONSTER!" };
+    private readonly string[] perfectWords = { "PERFECT!", "AMAZING!", "FANTASTIC!", "BULLSEYE!" };
+    private readonly string[] niceWords = { "NICE!", "GOOD!", "COOL!", "NOT BAD!" };
+    private readonly string[] insaneWords = { "INSANE!", "GODLIKE!", "UNSTOPPABLE!", "MONSTER!" };
 
     [Header("Level Dynamic Colors")]
     public Image currentLevelCircle;
@@ -52,19 +52,26 @@ public class LevelManager : MonoBehaviour
     public int bestScoreStarReward = 10;
 
     private TaskManager taskManager;
-    private GameObject ballReference; // Topu hər dəfə axtarmamaq üçün referans
+
+    // private Coroutine statusRoutine; // Status animasiyalarini idare etmek ucun
+
+    // String Caching
+    private static readonly string LevelKey = "level";
+    private static readonly string PointsKey = "currentPoints";
+    private static readonly string BestScoreKey = "BestScore";
+    private static readonly string BallTag = "Ball";
 
     private void Awake()
     {
-        if (Instance == null)
-            Instance = this;
+        Instance = this;
 
-        level = PlayerPrefs.GetInt("level", 1);
-        pointsToNextLevel = 10 + (level * 2); // Başlanğıc hesabı
+        level = PlayerPrefs.GetInt(LevelKey, 1);
+        pointsToNextLevel = 10 + (level * 2);
 
-        statusText?.gameObject.SetActive(false);
+        if (statusText != null)
+            statusText.gameObject.SetActive(false);
         if (scoreText != null)
-            scoreText.text = "0";
+            scoreText.SetText("0");
 
         UpdateLevelTexts();
         if (progressBarFill != null)
@@ -73,8 +80,7 @@ public class LevelManager : MonoBehaviour
 
     private void Start()
     {
-        // TaskManager.Instance varsa birbaşa istifadə etmək daha yaxşıdır
-        taskManager = FindFirstObjectByType<TaskManager>();
+        taskManager = TaskManager.Instance;
         UpdateThemeColor();
     }
 
@@ -89,6 +95,7 @@ public class LevelManager : MonoBehaviour
         int nextColorIndex = level % levelColors.Length;
         Color nextLevelThemeColor = levelColors[nextColorIndex];
 
+        // UI Rənglənməsi
         if (currentLevelCircle != null)
             currentLevelCircle.color = currentLevelThemeColor;
         if (nextLevelCircle != null)
@@ -96,23 +103,20 @@ public class LevelManager : MonoBehaviour
         if (progressBarFill != null)
             progressBarFill.color = currentLevelThemeColor;
 
+        // GameManager ilə inteqrasiya
         if (GameManager.Instance != null)
         {
             GameManager.Instance.baseBallColor = currentLevelThemeColor;
             GameManager.Instance.ballGlowColor = currentLevelThemeColor;
 
-            Camera.main.DOKill(); // Köhnə animasiyanı dayandır
-            Camera.main.DOColor(currentLevelThemeColor * 0.2f, 2f);
+            Camera.main.DOKill();
+            Camera.main.DOColor(currentLevelThemeColor * 0.15f, 1.5f).SetEase(Ease.Linear);
 
-            // FindWithTag yerinə referans yoxlaması
-            if (ballReference == null)
-                ballReference = GameObject.FindWithTag("Ball");
-
-            if (ballReference != null)
+            // Səhnədəki mövcud topu tapıb rəngləyirik (TryGetComponent daha sürətlidir)
+            GameObject ball = GameObject.FindGameObjectWithTag(BallTag);
+            if (ball != null && ball.TryGetComponent<SpriteRenderer>(out var sr))
             {
-                SpriteRenderer sr = ballReference.GetComponent<SpriteRenderer>();
-                if (sr != null)
-                    sr.color = currentLevelThemeColor;
+                sr.color = currentLevelThemeColor;
             }
         }
     }
@@ -122,46 +126,35 @@ public class LevelManager : MonoBehaviour
         currentPoints += amount;
         totalScore += amount;
 
-        if (scoreText != null)
-            scoreText.text = totalScore.ToString();
+        scoreText?.SetText("{0}", totalScore);
 
-        // Barı DOTween ilə doldururuq (Axıcı və performanslı)
-        float fillRatio = (float)currentPoints / pointsToNextLevel;
-        progressBarFill.DOFillAmount(fillRatio, 0.3f).SetEase(Ease.OutQuad);
+        if (progressBarFill != null)
+        {
+            float fillRatio = (float)currentPoints / pointsToNextLevel;
+            progressBarFill.DOKill();
+            progressBarFill.DOFillAmount(fillRatio, 0.4f).SetEase(Ease.OutCubic);
+        }
 
-        if (amount >= 2 && MissionManager.Instance != null)
-            MissionManager.Instance.AddPerfect();
-
-        MissionManager.Instance?.AddScore(amount);
-        CheckBestScore();
-
-        // Hər xalda yox, yalnız vacib anlarda Save etmək olar.
-        // Amma mütləq lazımdırsa burda qalsın.
-        PlayerPrefs.SetInt("currentPoints", currentPoints);
+        // PlayerPrefs.SetInt(PointsKey, currentPoints); // <--- BU SƏTRİ SİL!
+        // Yalnız LevelUp və ya Oyun Bitəndə yadda saxla.
 
         if (currentPoints >= pointsToNextLevel)
             LevelUp();
     }
 
-    // Yeni köməkçi funksiya
     void CheckBestScore()
     {
-        int currentBest = PlayerPrefs.GetInt("BestScore", 0);
+        int currentBest = PlayerPrefs.GetInt(BestScoreKey, 0);
         if (totalScore > currentBest)
         {
             if (!isBestScoreReachedThisSession && currentBest > 0)
             {
                 isBestScoreReachedThisSession = true;
-                if (taskManager != null)
-                    taskManager.StartStarAnimation_NoTimer(
-                        bestScoreStarReward,
-                        bestScoreStarReward
-                    );
-
+                taskManager?.StartStarAnimation_NoTimer(bestScoreStarReward, bestScoreStarReward);
                 SpawnLevelUpEffect();
                 ShowStatus("NEW BEST!", perfectColor);
             }
-            PlayerPrefs.SetInt("BestScore", totalScore);
+            PlayerPrefs.SetInt(BestScoreKey, totalScore);
         }
     }
 
@@ -169,21 +162,23 @@ public class LevelManager : MonoBehaviour
     {
         level++;
         currentPoints = 0;
-        pointsToNextLevel = Mathf.Min(10 + (level * 2), 50);
+        pointsToNextLevel = Mathf.Min(10 + (level * 2), 60);
 
-        PlayerPrefs.SetInt("level", level);
-        PlayerPrefs.SetInt("currentPoints", 0);
-        PlayerPrefs.Save(); // Yalnız level artanda diskə yazırıq
+        PlayerPrefs.SetInt(LevelKey, level);
+        PlayerPrefs.SetInt(PointsKey, 0);
+        PlayerPrefs.Save();
 
-        if (MissionManager.Instance != null)
-            MissionManager.Instance.AddLevel();
+        MissionManager.Instance?.AddLevel();
 
-        // Sürət artımı
-        if (GameManager.Instance.FirstSpeed < 350f)
-            GameManager.Instance.FirstSpeed += 2f;
+        // Speed Progression (Daha təmiz yoxlama)
+        if (GameManager.Instance != null)
+        {
+            if (GameManager.Instance.FirstSpeed < 350f)
+                GameManager.Instance.FirstSpeed += 2.5f;
 
-        GameManager.Instance.currentSpeed = GameManager.Instance.FirstSpeed;
-        PlayerPrefs.SetFloat("firstspeed", GameManager.Instance.FirstSpeed);
+            GameManager.Instance.currentSpeed = GameManager.Instance.FirstSpeed;
+            PlayerPrefs.SetFloat("firstspeed", GameManager.Instance.FirstSpeed);
+        }
 
         UISoundManager.Instance?.PlayLevelUpSFX();
 
@@ -193,7 +188,7 @@ public class LevelManager : MonoBehaviour
         ShowStatus("LEVEL UP!", levelUpColor);
         LevelUpSlowMo();
 
-        StartCoroutine(SmoothLevelTransition());
+        progressBarFill?.DOFillAmount(0f, 0.3f).SetDelay(0.5f).SetEase(Ease.InOutSine);
 
         if (taskManager != null)
         {
@@ -202,36 +197,22 @@ public class LevelManager : MonoBehaviour
         }
     }
 
-    // Bu funksiya LevelUp-dan xaricdə, aşağıda olmalıdır
-    IEnumerator SmoothLevelTransition()
-    {
-        yield return new WaitForSecondsRealtime(0.4f);
-        progressBarFill.fillAmount = 0f;
-    }
-
     public void ShowStatusByType(string type, int combo = 0)
     {
-        string selectedWord = "";
-        Color selectedColor = Color.white;
+        string selectedWord;
+        Color selectedColor;
 
         if (type == "Perfect")
         {
-            // ⭐ MISSİYA BURADA ÇAĞIRILMALIDIR
-            if (MissionManager.Instance != null)
-            {
-                MissionManager.Instance.AddPerfect();
-            }
-
-            selectedWord =
-                combo >= 5
-                    ? insaneWords[UnityEngine.Random.Range(0, insaneWords.Length)]
-                    : perfectWords[UnityEngine.Random.Range(0, perfectWords.Length)];
-
-            selectedColor = combo >= 5 ? new Color(2f, 0f, 2f) : perfectColor;
+            bool isInsane = combo >= 5;
+            selectedWord = isInsane
+                ? insaneWords[Random.Range(0, insaneWords.Length)]
+                : perfectWords[Random.Range(0, perfectWords.Length)];
+            selectedColor = isInsane ? new Color(2f, 0.5f, 2f) : perfectColor;
         }
-        else if (type == "Nice")
+        else
         {
-            selectedWord = niceWords[UnityEngine.Random.Range(0, niceWords.Length)];
+            selectedWord = niceWords[Random.Range(0, niceWords.Length)];
             selectedColor = niceColor;
         }
 
@@ -242,84 +223,80 @@ public class LevelManager : MonoBehaviour
     {
         if (statusText == null)
             return;
-        statusText.text = message;
+
+        statusText.SetText(message);
         statusText.color = col;
         statusText.gameObject.SetActive(true);
 
-        StopAllCoroutines();
-        StartCoroutine(StatusAnimationRoutine());
+        // Coroutine əvəzinə DOTween (Daha yüngül və hamar)
+        RectTransform rect = statusText.rectTransform;
+        rect.DOKill(); // Köhnə animasiyanı dayandır
+        rect.localScale = Vector3.zero;
+
+        // AAA Pop Animasiyası
+        rect.DOScale(Vector3.one, 0.3f)
+            .SetEase(Ease.OutBack)
+            .SetUpdate(true)
+            .OnComplete(() =>
+            {
+                DOVirtual
+                    .DelayedCall(
+                        0.8f,
+                        () =>
+                        {
+                            statusText.gameObject.SetActive(false);
+                        }
+                    )
+                    .SetUpdate(true);
+            });
     }
 
     IEnumerator StatusAnimationRoutine()
     {
-        RectTransform rect = statusText.GetComponent<RectTransform>();
+        RectTransform rect = statusText.rectTransform;
         rect.localScale = Vector3.zero;
 
+        // AAA Pop Effect (Time.unscaledDeltaTime istifadə olunur ki, slow-mo zamanı donmasın)
         float t = 0;
-        while (t < 0.15f)
+        while (t < 1f)
         {
-            t += Time.deltaTime;
-            rect.localScale = Vector3.Lerp(Vector3.zero, Vector3.one * 1.5f, t / 0.15f);
+            t += Time.unscaledDeltaTime * 6f;
+            float curve =
+                (t < 0.6f)
+                    ? Mathf.Lerp(0, 1.4f, t / 0.6f)
+                    : Mathf.Lerp(1.4f, 1f, (t - 0.6f) / 0.4f);
+            rect.localScale = Vector3.one * curve;
             yield return null;
         }
 
-        t = 0;
-        while (t < 0.1f)
-        {
-            t += Time.deltaTime;
-            rect.localScale = Vector3.Lerp(Vector3.one * 1.5f, Vector3.one, t / 0.1f);
-            yield return null;
-        }
-
-        yield return new WaitForSeconds(0.7f);
+        yield return new WaitForSecondsRealtime(0.8f);
         statusText.gameObject.SetActive(false);
+        // statusRoutine = null;
     }
 
     void UpdateLevelTexts()
     {
         if (currentLevelText != null)
         {
-            currentLevelText.text = level.ToString();
-            StartCoroutine(TextPunchScale(currentLevelText.rectTransform));
+            currentLevelText.SetText("{0}", level);
+            AnimateTextPulse(currentLevelText.rectTransform);
         }
-        if (nextLevelText != null)
-            nextLevelText.text = (level + 1).ToString();
+        nextLevelText?.SetText("{0}", level + 1);
     }
 
-    IEnumerator TextPunchScale(RectTransform rt)
+    void AnimateTextPulse(RectTransform rt)
     {
-        float t = 0;
-        Vector3 originalScale = Vector3.one;
-        Vector3 targetScale = Vector3.one * 1.8f; // 1.8 qat böyüsün
-
-        while (t < 0.15f)
-        {
-            t += Time.deltaTime;
-            rt.localScale = Vector3.Lerp(originalScale, targetScale, t / 0.15f);
-            yield return null;
-        }
-
-        t = 0;
-        while (t < 0.2f)
-        {
-            t += Time.deltaTime;
-            rt.localScale = Vector3.Lerp(targetScale, originalScale, t / 0.2f);
-            yield return null;
-        }
+        rt.DOKill();
+        rt.localScale = Vector3.one;
+        rt.DOPunchScale(Vector3.one * 0.3f, 0.4f, 2, 0.5f).SetUpdate(true);
     }
 
     public string GetCurrentLevelPercentage()
     {
-        // pointsToNextLevel 0 olarsa, bölmə xətası verməməsi üçün yoxlama
         if (pointsToNextLevel <= 0)
             return "0%";
-
         float percentage = ((float)currentPoints / pointsToNextLevel) * 100f;
-
-        // 100-dən yuxarı çıxmaması üçün Clamp əlavə edirik
-        int finalValue = Mathf.Clamp(Mathf.RoundToInt(percentage), 0, 100);
-
-        return finalValue.ToString() + "%";
+        return Mathf.Clamp(Mathf.RoundToInt(percentage), 0, 100).ToString();
     }
 
     public void SpawnLevelUpEffect()
@@ -327,34 +304,17 @@ public class LevelManager : MonoBehaviour
         if (levelUpParticlePrefab == null)
             return;
 
-        // 1. Mövqeləri təyin edirik (Z oxu 10f kameranın qarşısında görünməsi üçündür)
-        // Viewport: (0,0) sol alt, (1,1) sağ üst küncdür.
-        Vector3 leftCorner = Camera.main.ViewportToWorldPoint(new Vector3(0.15f, -0.1f, 10f));
-        Vector3 rightCorner = Camera.main.ViewportToWorldPoint(new Vector3(0.85f, -0.1f, 10f));
+        // Viewport-dan koordinat hesablanması (Unity 6 Optimized)
+        Vector3 leftPos = Camera.main.ViewportToWorldPoint(new Vector3(0.15f, -0.1f, 10f));
+        Vector3 rightPos = Camera.main.ViewportToWorldPoint(new Vector3(0.85f, -0.1f, 10f));
 
-        // 2. Sol küncdən atəş (Yuxarı və sağa doğru - Euler: -60, 30, 0)
-        GameObject leftConfetti = Instantiate(
-            levelUpParticlePrefab,
-            leftCorner,
-            Quaternion.Euler(-60, 30, 0)
-        );
+        GameObject l = Instantiate(levelUpParticlePrefab, leftPos, Quaternion.Euler(-60, 30, 0));
+        GameObject r = Instantiate(levelUpParticlePrefab, rightPos, Quaternion.Euler(-60, -30, 0));
 
-        // 3. Sağ küncdən atəş (Yuxarı və sola doğru - Euler: -60, -30, 0)
-        GameObject rightConfetti = Instantiate(
-            levelUpParticlePrefab,
-            rightCorner,
-            Quaternion.Euler(-60, -30, 0)
-        );
+        // CameraShake.Instance?.ShakeCamera(0.4f, 0.4f);
 
-        // 4. Vizual təsir: Kamera titrəməsi
-        if (CameraShake.Instance != null)
-        {
-            CameraShake.Instance.ShakeCamera(0.4f, 0.4f);
-        }
-
-        // 5. Təmizlik: Effektləri müəyyən müddətdən sonra yox edirik
-        Destroy(leftConfetti, 5f);
-        Destroy(rightConfetti, 5f);
+        Destroy(l, 5f);
+        Destroy(r, 5f);
     }
 
     public void LevelUpSlowMo()
@@ -365,9 +325,18 @@ public class LevelManager : MonoBehaviour
                 0.8f,
                 () =>
                 {
-                    Time.timeScale = 1f;
+                    if (Time.timeScale < 1f)
+                        Time.timeScale = 1f;
                 }
             )
-            .SetUpdate(true); // DOTween tələb olunur
+            .SetUpdate(true);
+    }
+
+    public float GetLevelProgressValue()
+    {
+        if (pointsToNextLevel <= 0)
+            return 0f;
+        float progress = ((float)currentPoints / pointsToNextLevel) * 100f;
+        return Mathf.Clamp(progress, 0f, 100f);
     }
 }

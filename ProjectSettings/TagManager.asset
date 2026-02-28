@@ -7,6 +7,9 @@ TagManager:
   - Ball
   - BG
   - Target
+  - FloatingText
+  - BallParticle
+  - StarBall
   layers:
   - Default
   - TransparentFX

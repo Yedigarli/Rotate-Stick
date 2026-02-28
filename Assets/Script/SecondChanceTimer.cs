@@ -1,4 +1,5 @@
 using System.Collections;
+using DG.Tweening;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -52,15 +53,12 @@ public class SecondChanceTimer : MonoBehaviour
         {
             noThanksButton.interactable = true;
 
-            // Aktiv olduğunu bildirmək üçün kiçik sıçrayış effekti
-            noThanksButton.transform.localScale = Vector3.one * 1.1f;
-            float t = 0;
-            while (t < 0.1f)
-            {
-                t += Time.unscaledDeltaTime;
-                yield return null;
-            }
-            noThanksButton.transform.localScale = Vector3.one;
+            // 1. Əvvəlcə üzərindəki bütün animasiyaları dayandırırıq (Xətanın qarşısını alır)
+            noThanksButton.transform.DOKill();
+
+            // 2. AAA "Sıçrayış" effekti - Manual scale əvəzinə
+            noThanksButton.transform.localScale = Vector3.one; // Sıfırla
+            noThanksButton.transform.DOPunchScale(Vector3.one * 0.15f, 0.4f, 5, 1f).SetUpdate(true);
         }
     }
 

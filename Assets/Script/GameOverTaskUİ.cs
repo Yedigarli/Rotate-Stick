@@ -22,7 +22,7 @@ public class GameOverTaskDisplay : MonoBehaviour
         }
         else
         {
-            progressText.text = task.currentProgress + " / " + task.targetAmount;
+            progressText.SetText("{0} / {1}", task.currentProgress, task.targetAmount);
             progressBarFill.fillAmount = task.GetProgress();
         }
     }
