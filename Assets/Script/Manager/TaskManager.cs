@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
@@ -19,7 +19,7 @@ public class TaskManager : MonoBehaviour
 
     [ColorUsage(true, true)]
     public Color rewardColor = Color.yellow;
-    private int displayedRewardValue = 0;
+    private int displayedRewardValue;
 
     [Header("Star Animation Settings")]
     public GameObject starPrefab;
@@ -30,19 +30,28 @@ public class TaskManager : MonoBehaviour
     public Ease moveEase = Ease.InBack;
 
     [Header("Distribution Settings")]
-    public int starAmount = 30;
-    public float totalDelay = 0.5f;
+    public int starAmount = 10;
+    public float totalDelay = 0.4f;
 
     [Header("Cooldown Settings")]
     public float giftCooldownHours = 24f;
-    private string lastGiftKey = "FreeGift_Daily_Timer";
 
-    private int starsReachedTarget = 0;
-    private bool isReadyStateActive = false; // Animasiyanın sonsuz dövrəyə girməməsi üçün kontrol
+    private int starsReachedTarget;
+    private bool isReadyStateActive;
+    private DateTime? nextGiftTimeUtc;
+    private float nextTimerRefresh;
+    private Transform giftButtonTransform;
+    private Transform rewardTextTransform;
+
+    private const string LastGiftTicksKey = "FreeGiftTicksUtc";
+    private static readonly Color DisabledGlowColor = new Color(0.3f, 0.3f, 0.3f, 0.5f);
 
     private void Awake()
     {
         Instance = this;
+
+        ConfigureTextLayout();
+
         if (giftPanel != null)
         {
             giftPanel.gameObject.SetActive(false);
@@ -54,57 +63,93 @@ public class TaskManager : MonoBehaviour
             rewardText.gameObject.SetActive(false);
             rewardText.transform.SetParent(starEnd);
             RectTransform rt = rewardText.GetComponent<RectTransform>();
-            rt.anchoredPosition = new Vector2(0, 80f);
+            rt.anchoredPosition = new Vector2(0f, 80f);
             rt.localScale = Vector3.one * 1.5f;
-            rewardText.alignment = TextAlignmentOptions.Center;
             rewardText.transform.SetAsLastSibling();
+        }
+
+        LoadGiftTime();
+        nextTimerRefresh = Time.unscaledTime;
+        giftButtonTransform = getGiftButton != null ? getGiftButton.transform : null;
+        rewardTextTransform = rewardText != null ? rewardText.transform : null;
+    }
+
+    private void ConfigureTextLayout()
+    {
+        if (timerText != null)
+        {
+            timerText.alignment = TextAlignmentOptions.Center;
+            timerText.enableWordWrapping = false;
+        }
+
+        if (rewardText != null)
+        {
+            rewardText.alignment = TextAlignmentOptions.Center;
+            rewardText.enableWordWrapping = false;
+            rewardText.overflowMode = TextOverflowModes.Overflow;
         }
     }
 
-    private void Update() => UpdateTimer();
+    private static DateTime UtcNow() => DateTime.UtcNow;
+
+    private void LoadGiftTime()
+    {
+        long ticks = Convert.ToInt64(PlayerPrefs.GetString(LastGiftTicksKey, "0"));
+        if (ticks <= 0)
+        {
+            nextGiftTimeUtc = null;
+            return;
+        }
+
+        DateTime lastGiftUtc = new DateTime(ticks, DateTimeKind.Utc);
+        nextGiftTimeUtc = lastGiftUtc.AddHours(giftCooldownHours);
+    }
+
+    private void SaveGiftTime(DateTime utc)
+    {
+        PlayerPrefs.SetString(LastGiftTicksKey, utc.Ticks.ToString());
+    }
+
+    private void Update()
+    {
+        if (Time.unscaledTime < nextTimerRefresh)
+            return;
+
+        nextTimerRefresh = Time.unscaledTime + 1f;
+        UpdateTimer();
+    }
 
     private void UpdateTimer()
     {
         if (getGiftButton == null || timerText == null)
             return;
 
-        string lastTimeStr = PlayerPrefs.GetString(lastGiftKey, string.Empty);
-
-        // Əgər heç vaxt götürülməyibsə
-        if (string.IsNullOrEmpty(lastTimeStr))
+        if (!nextGiftTimeUtc.HasValue)
         {
             if (!isReadyStateActive)
                 SetReady();
             return;
         }
 
-        if (DateTime.TryParse(lastTimeStr, out DateTime lastTime))
+        TimeSpan remaining = nextGiftTimeUtc.Value - UtcNow();
+        if (remaining.TotalSeconds <= 0)
         {
-            TimeSpan remaining = TimeSpan.FromHours(giftCooldownHours) - (DateTime.Now - lastTime);
-
-            if (remaining.TotalSeconds <= 0)
-            {
-                if (!isReadyStateActive)
-                    SetReady();
-            }
-            else
-            {
-                // Cooldown davam edir
-                isReadyStateActive = false;
-                getGiftButton.interactable = false;
-                timerText.text = string.Format(
-                    "{0:D2}:{1:D2}:{2:D2}",
-                    remaining.Hours,
-                    remaining.Minutes,
-                    remaining.Seconds
-                );
-
-                if (buttonGlow != null)
-                    buttonGlow.color = new Color(0.3f, 0.3f, 0.3f, 0.5f);
-
-                getGiftButton.transform.DOKill(); // Cooldown zamanı animasiyanı dayandır
-            }
+            nextGiftTimeUtc = null;
+            if (!isReadyStateActive)
+                SetReady();
+            return;
         }
+
+        isReadyStateActive = false;
+        getGiftButton.interactable = false;
+
+        int totalHours = Mathf.Max(0, (int)remaining.TotalHours);
+        timerText.SetText("{0:D2}:{1:D2}:{2:D2}", totalHours, remaining.Minutes, remaining.Seconds);
+
+        if (buttonGlow != null)
+            buttonGlow.color = DisabledGlowColor;
+
+        getGiftButton.transform.DOKill();
     }
 
     private void SetReady()
@@ -114,12 +159,12 @@ public class TaskManager : MonoBehaviour
 
         isReadyStateActive = true;
         getGiftButton.interactable = true;
-        timerText.text = "CLAIM GIFT!";
+        timerText.SetText("CLAIM GIFT");
 
         getGiftButton.transform.DOKill();
-        getGiftButton.transform.localScale = Vector3.one; // Miqyası sıfırla
+        getGiftButton.transform.localScale = Vector3.one;
         getGiftButton
-            .transform.DOPunchScale(Vector3.one * 0.15f, 1f, 5)
+            .transform.DOPunchScale(Vector3.one * 0.12f, 0.8f, 4)
             .SetLoops(-1)
             .SetUpdate(true);
     }
@@ -128,42 +173,45 @@ public class TaskManager : MonoBehaviour
     {
         if (giftPanel == null)
             return;
+
         giftPanel.gameObject.SetActive(true);
+        giftPanel.DOKill();
         giftPanel.DOAnchorPosX(0f, 0.6f).SetEase(Ease.OutBack).SetUpdate(true);
     }
 
     public void OnGetButtonClick()
     {
-        isReadyStateActive = false; // Statusu sıfırla
+        isReadyStateActive = false;
+
         if (getGiftButton != null)
         {
             getGiftButton.interactable = false;
             getGiftButton.transform.DOKill();
             getGiftButton.transform.localScale = Vector3.one;
         }
+
         UISoundManager.Instance?.PlayStarSFX();
 
-        PlayerPrefs.SetString(lastGiftKey, DateTime.Now.ToString());
-        StartStarAnimationWithRandomReward(
-            30,
-            50,
-            getGiftButton != null ? getGiftButton.transform : null
-        );
+        DateTime nowUtc = UtcNow();
+        SaveGiftTime(nowUtc);
+        nextGiftTimeUtc = nowUtc.AddHours(giftCooldownHours);
+
+        StartStarAnimationWithRandomReward(10, 20, getGiftButton != null ? getGiftButton.transform : null);
     }
 
-    public void StartStarAnimationWithRandomReward(
-        int visualAmount,
-        int realReward,
-        Transform customStart = null
-    )
+    public void StartStarAnimationWithRandomReward(int visualAmount, int realReward, Transform customStart = null)
     {
+        if (visualAmount <= 0)
+            return;
+
         starsReachedTarget = 0;
         displayedRewardValue = 0;
+
         float starPerDelay = totalDelay / visualAmount;
         int rewardPerStar = realReward / visualAmount;
         int extraReward = realReward % visualAmount;
 
-        Transform startPos = (customStart != null) ? customStart : starStart;
+        Transform startPos = customStart != null ? customStart : starStart;
 
         for (int i = 0; i < visualAmount; i++)
         {
@@ -180,34 +228,28 @@ public class TaskManager : MonoBehaviour
         if (starPrefab == null || actualStart == null || starEnd == null)
             return;
 
-        var star = Instantiate(starPrefab, starParent);
+        GameObject star = Instantiate(starPrefab, starParent);
         star.transform.position = actualStart.position;
         star.transform.localScale = Vector3.zero;
 
         Sequence s = DOTween.Sequence().SetUpdate(true);
-        s.Append(star.transform.DOScale(Vector3.one, 0.3f).SetEase(Ease.OutBack));
-        s.Join(
-            star.transform.DOMove(
-                actualStart.position + (Vector3)UnityEngine.Random.insideUnitCircle * 150f,
-                0.4f
-            )
-        );
-        s.AppendInterval(0.1f);
+        s.Append(star.transform.DOScale(Vector3.one, 0.25f).SetEase(Ease.OutBack));
+        s.Join(star.transform.DOMove(actualStart.position + (Vector3)UnityEngine.Random.insideUnitCircle * 120f, 0.3f));
+        s.AppendInterval(0.08f);
         s.Append(star.transform.DOMove(starEnd.position, moveDuration).SetEase(moveEase));
         s.Join(star.transform.DOScale(Vector3.one * 0.6f, moveDuration));
         s.SetDelay(delay);
         s.OnComplete(() =>
         {
             starsReachedTarget++;
+
             if (starEnd != null)
             {
                 starEnd.DOKill(true);
-                starEnd.DOPunchScale(Vector3.one * 0.2f, 0.2f).SetUpdate(true);
+                starEnd.DOPunchScale(Vector3.one * 0.16f, 0.18f).SetUpdate(true);
             }
 
-            if (StarManager.Instance != null)
-                StarManager.Instance.AddStar(rewardAmount);
-
+            StarManager.Instance?.AddStar(rewardAmount);
             UpdateRewardDisplay(rewardAmount);
 
             if (starsReachedTarget >= totalStars)
@@ -217,12 +259,11 @@ public class TaskManager : MonoBehaviour
         });
     }
 
-    public void StartStarAnimation_NoTimer(
-        int visualAmount,
-        int realReward,
-        Transform customStart = null
-    )
+    public void StartStarAnimation_NoTimer(int visualAmount, int realReward, Transform customStart = null)
     {
+        if (visualAmount <= 0)
+            return;
+
         starsReachedTarget = 0;
         displayedRewardValue = 0;
 
@@ -230,7 +271,7 @@ public class TaskManager : MonoBehaviour
         int rewardPerStar = realReward / visualAmount;
         int extraReward = realReward % visualAmount;
 
-        Transform startPos = (customStart != null) ? customStart : starStart;
+        Transform startPos = customStart != null ? customStart : starStart;
 
         for (int i = 0; i < visualAmount; i++)
         {
@@ -243,27 +284,24 @@ public class TaskManager : MonoBehaviour
     {
         if (rewardText == null)
             return;
+
         rewardText.gameObject.SetActive(true);
         displayedRewardValue += inc;
-        rewardText.text = "+" + displayedRewardValue;
+        rewardText.SetText("+{0}", displayedRewardValue);
         rewardText.transform.DOKill(true);
-        rewardText.transform.DOPunchScale(Vector3.one * 0.2f, 0.1f).SetUpdate(true);
+        rewardText.transform.DOPunchScale(Vector3.one * 0.18f, 0.1f).SetUpdate(true);
     }
 
     private void FinalizeRewardDisplay()
     {
         if (rewardText == null)
             return;
-        DOVirtual
-            .DelayedCall(
-                1f,
-                () =>
-                {
-                    if (rewardText != null)
-                        rewardText.gameObject.SetActive(false);
-                }
-            )
-            .SetUpdate(true);
+
+        DOVirtual.DelayedCall(0.9f, () =>
+        {
+            if (rewardText != null)
+                rewardText.gameObject.SetActive(false);
+        }).SetUpdate(true);
     }
 
     private void OnDisable()
@@ -271,12 +309,15 @@ public class TaskManager : MonoBehaviour
         if (giftPanel != null)
             giftPanel.DOKill();
 
-        if (getGiftButton != null && getGiftButton.transform != null)
-            getGiftButton.transform.DOKill();
+        if (giftButtonTransform != null)
+            giftButtonTransform.DOKill();
 
-        if (rewardText != null && rewardText.transform != null)
-            rewardText.transform.DOKill();
+        if (rewardTextTransform != null)
+            rewardTextTransform.DOKill();
 
         isReadyStateActive = false;
     }
 }
+
+
+

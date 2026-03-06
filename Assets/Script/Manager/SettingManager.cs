@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -22,12 +22,9 @@ public class SettingsManager : MonoBehaviour
     public Image soundIcon;
     public Image musicIcon;
 
-    public Sprite vibOn,
-        vibOff;
-    public Sprite soundOn,
-        soundOff;
-    public Sprite musicOn,
-        musicOff;
+    public Sprite vibOn, vibOff;
+    public Sprite soundOn, soundOff;
+    public Sprite musicOn, musicOff;
 
     public float animDuration = 0.25f;
     private bool isAnimating = false;
@@ -35,15 +32,14 @@ public class SettingsManager : MonoBehaviour
     private void Awake()
     {
         Instance = this;
-        settingsPanel.SetActive(false);
+        if (settingsPanel != null)
+            settingsPanel.SetActive(false);
 
-        // PlayClick() çağırışları silindi
-        settingbutton.onClick.AddListener(OpenSettings);
-        closeSettingButton.onClick.AddListener(CloseSettings);
-
-        // vibrationToggleButton.onClick.AddListener(ToggleVibrationAction);
-        soundToggleButton.onClick.AddListener(ToggleSoundAction);
-        musicToggleButton.onClick.AddListener(ToggleMusicAction);
+        settingbutton?.onClick.AddListener(OpenSettings);
+        closeSettingButton?.onClick.AddListener(CloseSettings);
+        vibrationToggleButton?.onClick.AddListener(ToggleVibrationAction);
+        soundToggleButton?.onClick.AddListener(ToggleSoundAction);
+        musicToggleButton?.onClick.AddListener(ToggleMusicAction);
     }
 
     private void Start()
@@ -51,9 +47,22 @@ public class SettingsManager : MonoBehaviour
         UpdateAllUI();
     }
 
+    public void ToggleVibrationAction()
+    {
+        UISoundManager.Instance?.ToggleVibration();
+        UISoundManager.Instance?.PlayClick();
+        UpdateAllUI();
+    }
+
     public void ToggleSoundAction()
     {
         UISoundManager.Instance?.ToggleSound();
+
+        // If there is no dedicated vibration button, route vibration toggle through sound button.
+        if (vibrationToggleButton == null || !vibrationToggleButton.gameObject.activeInHierarchy)
+            UISoundManager.Instance?.ToggleVibration();
+
+        UISoundManager.Instance?.PlayClick();
         UpdateAllUI();
     }
 
@@ -70,18 +79,19 @@ public class SettingsManager : MonoBehaviour
         if (sm == null)
             return;
 
-        if (vibrationIcon)
+        if (vibrationIcon != null)
             vibrationIcon.sprite = sm.isVibrationOn ? vibOn : vibOff;
-        if (soundIcon)
+        if (soundIcon != null)
             soundIcon.sprite = sm.isSoundOn ? soundOn : soundOff;
-        if (musicIcon)
+        if (musicIcon != null)
             musicIcon.sprite = sm.isMusicOn ? musicOn : musicOff;
     }
 
     public void OpenSettings()
     {
-        if (isAnimating)
+        if (isAnimating || settingsPanel == null)
             return;
+
         UpdateAllUI();
         settingsPanel.SetActive(true);
         StartCoroutine(Animate(true));
@@ -89,34 +99,44 @@ public class SettingsManager : MonoBehaviour
 
     public void CloseSettings()
     {
-        if (isAnimating)
+        if (isAnimating || settingsPanel == null)
             return;
+
         StartCoroutine(Animate(false));
     }
 
-    IEnumerator Animate(bool open)
+    private IEnumerator Animate(bool open)
     {
         isAnimating = true;
         float t = 0f;
-        float startAlpha = open ? 0 : 1;
-        float endAlpha = open ? 1 : 0;
+        float startAlpha = open ? 0f : 1f;
+        float endAlpha = open ? 1f : 0f;
         Vector3 startScale = open ? Vector3.one * 0.8f : Vector3.one;
         Vector3 endScale = open ? Vector3.one : Vector3.one * 0.8f;
 
-        canvasGroup.alpha = startAlpha;
+        if (canvasGroup != null)
+            canvasGroup.alpha = startAlpha;
+
         while (t < animDuration)
         {
             t += Time.unscaledDeltaTime;
             float p = t / animDuration;
-            canvasGroup.alpha = Mathf.Lerp(startAlpha, endAlpha, p);
+
+            if (canvasGroup != null)
+                canvasGroup.alpha = Mathf.Lerp(startAlpha, endAlpha, p);
             settingsPanel.transform.localScale = Vector3.Lerp(startScale, endScale, p);
             yield return null;
         }
-        canvasGroup.alpha = endAlpha;
+
+        if (canvasGroup != null)
+            canvasGroup.alpha = endAlpha;
         settingsPanel.transform.localScale = endScale;
 
         if (!open)
             settingsPanel.SetActive(false);
+
         isAnimating = false;
     }
 }
+
+

@@ -167,3 +167,10 @@ TextureImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 311704
+  packageName: Simple UI Icons
+  packageVersion: 1.1
+  assetPath: Assets/3rdParty/HardArtcore/UI/SimpleIcons/Sprites/Icons/Border/ic_like.png
+  uploadId: 742599

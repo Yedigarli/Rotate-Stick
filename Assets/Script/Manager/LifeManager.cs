@@ -1,16 +1,16 @@
-using TMPro;
+﻿using TMPro;
 using UnityEngine;
 
 public class LifeManager : MonoBehaviour
 {
     public static LifeManager Instance;
     public int currentLives;
-    public TMP_Text lifeText; // Ulduzların altında görünəcək yazı
+    public TMP_Text lifeText; // UlduzlarÄ±n altÄ±nda gÃ¶rÃ¼nÉ™cÉ™k yazÄ±
 
     private void Awake()
     {
         Instance = this;
-        // Yaddaşdan şans sayını çəkirik
+        // YaddaÅŸdan ÅŸans sayÄ±nÄ± Ã§É™kirik
         currentLives = PlayerPrefs.GetInt("PlayerLives", 0);
         UpdateUI();
     }
@@ -39,6 +39,7 @@ public class LifeManager : MonoBehaviour
     public void UpdateUI()
     {
         if (lifeText != null)
-            lifeText.text = currentLives.ToString();
+            lifeText.SetText("{0}", currentLives);
     }
 }
+

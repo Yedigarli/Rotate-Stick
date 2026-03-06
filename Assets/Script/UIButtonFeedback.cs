@@ -1,12 +1,12 @@
-using DG.Tweening; // DOTween kitabxanası mütləqdir
+﻿using DG.Tweening;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
 public class UIButtonFeedback : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
 {
     [Header("Settings")]
-    public float scaleDownTo = 0.92f; // Basanda nə qədər kiçilsin
-    public float duration = 0.1f; // Animasiya sürəti
+    public float scaleDownTo = 0.92f;
+    public float duration = 0.1f;
     public bool playClickSound = true;
     public bool triggerVibration = true;
 
@@ -17,32 +17,32 @@ public class UIButtonFeedback : MonoBehaviour, IPointerDownHandler, IPointerUpHa
         originalScale = transform.localScale;
     }
 
-    // Düyməyə toxunduğun an bura işləyir
     public void OnPointerDown(PointerEventData eventData)
     {
-        // 1. Vizual: Kiçilmə effekti (TimeScale-dən asılı deyil)
         transform
             .DOScale(originalScale * scaleDownTo, duration)
             .SetUpdate(true)
             .SetEase(Ease.OutQuad);
 
-        // 2. Səs: Klik səsi
         if (playClickSound)
-        {
             UISoundManager.Instance?.PlayClick();
-        }
+
+#if UNITY_ANDROID || UNITY_IOS
+        if (triggerVibration && UISoundManager.Instance != null && UISoundManager.Instance.isVibrationOn)
+            Handheld.Vibrate();
+#endif
     }
 
-    // Barmağını düymədən çəkdiyin an bura işləyir
     public void OnPointerUp(PointerEventData eventData)
     {
-        // Vizual: Öz ölçüsünə qayıtma
         transform.DOScale(originalScale, duration).SetUpdate(true).SetEase(Ease.OutBack);
     }
 
-    // Düymə panel bağlananda kiçik qalsa, onu sıfırla
     private void OnDisable()
     {
+        transform.DOKill();
         transform.localScale = originalScale;
     }
 }
+
+

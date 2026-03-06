@@ -1,4 +1,4 @@
-using DG.Tweening;
+﻿using DG.Tweening;
 using TMPro;
 using UnityEngine;
 
@@ -6,43 +6,44 @@ public class FloatingText : MonoBehaviour
 {
     public float moveDistance = 150f;
     public float fadeDuration = 1f;
-    private TMP_Text textMesh;
-    private Vector3 initialScale;
 
-    void Awake()
+    private TMP_Text textMesh;
+    private RectTransform rectTransform;
+    private Vector2 startAnchoredPos;
+
+    private void Awake()
     {
         textMesh = GetComponentInChildren<TMP_Text>();
-        initialScale = transform.localScale;
+        rectTransform = transform as RectTransform;
+        if (rectTransform != null)
+            startAnchoredPos = rectTransform.anchoredPosition;
     }
 
-    // OnEnable obyekt hər dəfə hovuzdan çıxanda işləyir
-    void OnEnable()
+    private void OnEnable()
     {
-        if (textMesh == null)
+        if (textMesh == null || rectTransform == null)
             return;
 
-        // Reset: Köhnə animasiyadan qalan dəyərləri sıfırla
         textMesh.alpha = 1f;
-        transform.localScale = initialScale;
+        rectTransform.anchoredPosition = startAnchoredPos;
+        rectTransform.localScale = Vector3.one;
 
-        // Animasiya
-        transform
-            .DOMoveY(transform.position.y + moveDistance, fadeDuration)
-            .SetEase(Ease.OutCubic);
+        rectTransform
+            .DOAnchorPosY(startAnchoredPos.y + moveDistance, fadeDuration)
+            .SetEase(Ease.OutCubic)
+            .SetUpdate(true);
 
         textMesh
-            .DOFade(0, fadeDuration)
-            .OnComplete(() =>
-            {
-                // Destroy YOX, SetActive(false) edirik ki, hovuza qayıtsın
-                gameObject.SetActive(false);
-            });
+            .DOFade(0f, fadeDuration)
+            .SetUpdate(true)
+            .OnComplete(() => gameObject.SetActive(false));
     }
 
-    void OnDisable()
+    private void OnDisable()
     {
-        // Obyekt sönəndə üzərindəki bütün animasiyaları dayandırırıq
-        transform.DOKill();
-        textMesh.DOKill();
+        if (rectTransform != null)
+            rectTransform.DOKill();
+        if (textMesh != null)
+            textMesh.DOKill();
     }
 }

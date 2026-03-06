@@ -1,10 +1,8 @@
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections;
 using DG.Tweening;
 using MaskTransitions;
 using TMPro;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class GameManager : MonoBehaviour
@@ -12,9 +10,14 @@ public class GameManager : MonoBehaviour
     public static GameManager Instance;
 
     [Header("Speeds")]
-    public float FirstSpeed = 250f;
+    public float FirstSpeed = 180f;
     public float currentSpeed;
     private Vector3 speedDirection = Vector3.forward;
+
+    [Header("Speed Tuning")]
+    public float minSpeed = 120f;
+    public float maxSpeed = 360f;
+    public float acceleration = 4.5f;
 
     [Header("Raycast Settings")]
     public float raycastDistance = 10f;
@@ -32,7 +35,7 @@ public class GameManager : MonoBehaviour
 
     [Header("Spawning")]
     public float radius = 1.3f;
-    public float starBallChance = 0.2f;
+    public float starBallChance = 0.08f;
 
     [Header("State")]
     public bool isSettingsOpen = false;
@@ -62,12 +65,18 @@ public class GameManager : MonoBehaviour
     public Color playerGlowColor = Color.cyan;
 
     private float animDuration = 0.25f;
-    private static readonly string BallTagStr = "Ball";
+
+    [Header("Optimized References")]
+    private Canvas mainCanvas;
+    private float _defaultFixedDeltaTime;
 
     private void Awake()
     {
         Instance = this;
         Application.targetFrameRate = 60;
+
+        _defaultFixedDeltaTime = Time.fixedDeltaTime;
+        mainCanvas = FindFirstObjectByType<Canvas>();
 
         if (levelProgressPercentText != null)
             levelProgressPercentText.enabled = false;
@@ -76,34 +85,47 @@ public class GameManager : MonoBehaviour
         if (secondChancePanel != null)
             secondChancePanel.SetActive(false);
 
-        FirstSpeed = PlayerPrefs.GetFloat("firstspeed", FirstSpeed);
+        FirstSpeed = Mathf.Clamp(
+            PlayerPrefs.GetFloat("firstspeed", FirstSpeed),
+            minSpeed,
+            maxSpeed * 0.9f
+        );
         currentSpeed = FirstSpeed;
+        starBallChance = Mathf.Clamp(starBallChance, 0.03f, 0.12f);
 
         SetupButtons();
     }
 
     private void Start()
     {
-        ApplyGlobalColors();
-        StartCoroutine(SafeSpawn(0.1f));
+        if (target != null)
+        {
+            target.transform.localScale = Vector3.zero;
+            target.transform.DOScale(Vector3.one, 0.5f).SetEase(Ease.OutBack);
+        }
+
+        if (mainCanvas == null)
+            mainCanvas = FindFirstObjectByType<Canvas>();
+
+        StartCoroutine(SafeSpawn(0.2f));
     }
 
     private void Update()
     {
-        if (isGameOver || isSettingsOpen || Time.timeScale == 0 || target == null)
+        if (isGameOver || isSettingsOpen || Time.timeScale <= 0f || target == null)
             return;
 
-        transform.RotateAround(
-            target.transform.position,
-            speedDirection,
-            currentSpeed * Time.deltaTime
-        );
+        float speedLerp = Mathf.Lerp(currentSpeed, FirstSpeed, 0.08f * Time.deltaTime);
+        currentSpeed = Mathf.Clamp(speedLerp, minSpeed, maxSpeed);
+
+        float step = currentSpeed * Time.deltaTime;
+        transform.RotateAround(target.transform.position, speedDirection, step);
 
         if (Input.GetMouseButtonDown(0))
             HandleShoot();
     }
 
-    void SetupButtons()
+    private void SetupButtons()
     {
         resStartBTN?.onClick.AddListener(() => RestartLevel("Game"));
         menuBTN?.onClick.AddListener(() => RestartLevel("Menu"));
@@ -112,13 +134,7 @@ public class GameManager : MonoBehaviour
         useStarBtn?.onClick.AddListener(HandleContinueButton);
     }
 
-    void ApplyGlobalColors()
-    {
-        if (player != null && player.TryGetComponent<SpriteRenderer>(out var sr))
-            sr.color = playerGlowColor;
-    }
-
-    void HandleShoot()
+    private void HandleShoot()
     {
         RaycastHit2D hit = Physics2D.Raycast(
             transform.position,
@@ -130,10 +146,13 @@ public class GameManager : MonoBehaviour
         if (hit.collider != null)
             ProcessHit(hit);
         else
+        {
+            LevelManager.Instance?.ShowStatus("MISS!", Color.red);
             StartCoroutine(GameOver());
+        }
     }
 
-    void ProcessHit(RaycastHit2D hit)
+    private void ProcessHit(RaycastHit2D hit)
     {
         Vector3 hitPos = hit.collider.transform.position;
         float distToCenter = Vector2.Distance(hit.point, hitPos);
@@ -143,40 +162,51 @@ public class GameManager : MonoBehaviour
         {
             comboCount++;
             ApplyPerfectEffects(hitPos);
-            LevelManager.Instance?.AddProgress(2);
+            LevelManager.Instance?.AddProgress(1);
+            LevelManager.Instance?.ShowStatusByType("Perfect", comboCount);
+            MissionManager.Instance?.AddPerfect();
+            MissionManager.Instance?.AddScore(1);
         }
         else
         {
             comboCount = 0;
             ApplyNormalHitEffects(hitPos);
             LevelManager.Instance?.AddProgress(1);
+            LevelManager.Instance?.ShowStatusByType("Nice");
+            MissionManager.Instance?.AddScore(1);
         }
 
-        if (hit.collider.TryGetComponent<Ball>(out Ball ballComp))
-        {
-            if (ballComp.ballType == BallType.Star)
-                StarManager.Instance?.AddStar(1);
-        }
+        if (
+            hit.collider.TryGetComponent<Ball>(out Ball ballComp)
+            && ballComp.ballType == BallType.Star
+        )
+            StarManager.Instance?.AddStar(1);
 
         hit.collider.gameObject.SetActive(false);
         currentBall = null;
 
-        speedDirection *= -1;
-        currentSpeed = Mathf.Clamp(
-            currentSpeed + (8f * (1000f / (1000f + currentSpeed))),
-            100f,
-            550f
-        );
+        speedDirection *= -1f;
+        float accel = Mathf.Lerp(acceleration, 1.25f, currentSpeed / maxSpeed);
+        currentSpeed = Mathf.Clamp(currentSpeed + accel, minSpeed, maxSpeed);
 
-        StartCoroutine(SafeSpawn(0.15f));
+        UISoundManager.Instance?.UpdateMusicPitch(currentSpeed, FirstSpeed);
+        StartCoroutine(SafeSpawn(0.12f));
     }
 
     private void ApplyPerfectEffects(Vector3 pos)
     {
-        Camera.main.DOKill();
-        Camera
-            .main.DOFieldOfView(65f, 0.05f)
-            .OnComplete(() => Camera.main.DOFieldOfView(60f, 0.15f));
+        Camera cam = Camera.main;
+        if (cam != null)
+        {
+            cam.DOKill();
+            cam.DOFieldOfView(63f, 0.06f)
+                .OnComplete(() =>
+                {
+                    if (cam != null)
+                        cam.DOFieldOfView(60f, 0.12f);
+                });
+        }
+
         HitStop();
         UISoundManager.Instance?.PlayHandleSFX(comboCount);
         CreateFloatingText(pos, GetComboText(), ballGlowColor);
@@ -192,10 +222,10 @@ public class GameManager : MonoBehaviour
 
     public void HitStop()
     {
-        Time.timeScale = 0.1f;
+        Time.timeScale = 0.15f;
         DOVirtual
             .DelayedCall(
-                0.05f,
+                0.035f,
                 () =>
                 {
                     if (!isGameOver)
@@ -205,7 +235,7 @@ public class GameManager : MonoBehaviour
             .SetUpdate(true);
     }
 
-    void CreateFloatingText(Vector3 pos, string text, Color color)
+    private void CreateFloatingText(Vector3 pos, string text, Color color)
     {
         GameObject fText = ObjectPooler.Instance.SpawnFromPool(
             floatingTextTag,
@@ -215,13 +245,43 @@ public class GameManager : MonoBehaviour
         if (fText == null)
             return;
 
-        fText.transform.SetParent(FindFirstObjectByType<Canvas>().transform, false);
-        fText.transform.position = Camera.main.WorldToScreenPoint(pos);
+        if (mainCanvas == null)
+            mainCanvas = FindFirstObjectByType<Canvas>();
+        if (mainCanvas != null)
+        {
+            RectTransform canvasRect = mainCanvas.transform as RectTransform;
+            RectTransform textRect = fText.transform as RectTransform;
+            if (canvasRect != null && textRect != null)
+            {
+                fText.transform.SetParent(mainCanvas.transform, false);
+                Camera cam = Camera.main;
+                Vector2 screenPoint = RectTransformUtility.WorldToScreenPoint(cam, pos);
+                RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                    canvasRect,
+                    screenPoint,
+                    mainCanvas.renderMode == RenderMode.ScreenSpaceOverlay
+                        ? null
+                        : mainCanvas.worldCamera,
+                    out Vector2 localPoint
+                );
+                textRect.anchoredPosition = localPoint;
+            }
+            else
+            {
+                fText.transform.SetParent(mainCanvas.transform, false);
+                Camera cam = Camera.main;
+                if (cam != null)
+                    fText.transform.position = cam.WorldToScreenPoint(pos);
+            }
+        }
 
         if (fText.TryGetComponent<TMP_Text>(out var tmp))
         {
             tmp.SetText(text);
             tmp.color = color;
+            tmp.alignment = TextAlignmentOptions.Center;
+            tmp.enableWordWrapping = false;
+            tmp.overflowMode = TextOverflowModes.Overflow;
         }
     }
 
@@ -246,13 +306,10 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    void SpawnBallAction()
+    private void SpawnBallAction()
     {
-        // Əgər əvvəlki top hələ də aktiv qalıbsa, onu söndür
         if (currentBall != null)
-        {
             currentBall.SetActive(false);
-        }
 
         Vector2 pos2D = Random.insideUnitCircle.normalized * radius;
         Vector3 spawnPos = target.transform.position + (Vector3)pos2D;
@@ -274,20 +331,20 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    IEnumerator SafeSpawn(float delay)
+    private IEnumerator SafeSpawn(float delay)
     {
         yield return new WaitForSeconds(delay);
 
-        // Əgər nəsə səbəbdən currentBall hələ də doludursa və ya
-        // səhnədə "Ball" taglı aktiv obyekt varsa, yenisini çıxarma.
         if (currentBall == null || !currentBall.activeInHierarchy)
         {
-            // Əlavə təhlükəsizlik: Səhnədə başqa aktiv top varmı?
-            GameObject existingBall = GameObject.FindGameObjectWithTag(normalBallTag);
-            if (existingBall == null || !existingBall.activeInHierarchy)
-            {
+            bool hasActiveNormal =
+                ObjectPooler.Instance != null
+                && ObjectPooler.Instance.HasActiveObject(normalBallTag);
+            bool hasActiveStar =
+                ObjectPooler.Instance != null && ObjectPooler.Instance.HasActiveObject(starBallTag);
+
+            if (!hasActiveNormal && !hasActiveStar)
                 SpawnBallAction();
-            }
         }
     }
 
@@ -298,43 +355,38 @@ public class GameManager : MonoBehaviour
             levelProgressPercentText.enabled = false;
 
         Time.timeScale = 1f;
+        Time.fixedDeltaTime = _defaultFixedDeltaTime;
         isSettingsOpen = false;
         isGameOver = false;
 
-        GameObject[] balls = GameObject.FindGameObjectsWithTag(BallTagStr);
-        for (int i = 0; i < balls.Length; i++)
-            balls[i].SetActive(false);
+        if (ObjectPooler.Instance != null)
+        {
+            ObjectPooler.Instance.DeactivateAll(normalBallTag);
+            ObjectPooler.Instance.DeactivateAll(starBallTag);
+        }
 
         currentBall = null;
         StartCoroutine(SafeSpawn(0.2f));
     }
 
-    IEnumerator GameOver()
+    private IEnumerator GameOver()
     {
         if (isGameOver)
             yield break;
+
         isGameOver = true;
+        Time.timeScale = 1f;
+        Time.fixedDeltaTime = _defaultFixedDeltaTime;
+
+        Camera cam = Camera.main;
+        if (cam != null)
+            cam.DOFieldOfView(52f, 0.18f).SetUpdate(true).SetEase(Ease.OutQuad);
+
         LoseWiggle.Instance?.PlayLoseAnimation();
         UISoundManager.Instance?.PlayOverSFX();
-        yield return new WaitForSecondsRealtime(0.75f);
-        if (levelProgressPercentText != null && LevelManager.Instance != null)
-        {
-            levelProgressPercentText.enabled = true;
-            levelProgressPercentText.SetText(
-                "{0}% COMPLETE",
-                LevelManager.Instance.GetLevelProgressValue()
-            );
-        }
-        if (secondChancePanel != null)
-        {
-            Time.timeScale = 0f;
-            isSettingsOpen = true;
-            if (secondChancePanel.TryGetComponent<SecondChanceTimer>(out var timer))
-                timer.canStart = true;
-            secondChancePanel.SetActive(true);
-        }
-        else
-            GameOverPopUp();
+
+        yield return new WaitForSecondsRealtime(0.55f);
+        GameOverPopUp();
     }
 
     public void CloseSecondChanceAndShowGameOver()
@@ -346,6 +398,7 @@ public class GameManager : MonoBehaviour
     public void RestartLevel(string sceneName)
     {
         Time.timeScale = 1f;
+        Time.fixedDeltaTime = _defaultFixedDeltaTime;
         isSettingsOpen = false;
         isGameOver = false;
         TransitionManager.Instance?.LoadLevel(sceneName);
@@ -355,7 +408,27 @@ public class GameManager : MonoBehaviour
     {
         gameoverPOPUP.SetActive(true);
         if (canvasGroup != null)
-            canvasGroup.alpha = 1;
+            canvasGroup.alpha = 1f;
+
+        if (levelProgressPercentText != null)
+        {
+            string percent =
+                LevelManager.Instance != null
+                    ? LevelManager.Instance.GetCurrentLevelPercentage()
+                    : "0";
+
+            levelProgressPercentText.enabled = true;
+            levelProgressPercentText.text = percent + "%";
+            if (int.TryParse(percent, out int p))
+                PlayerPrefs.SetInt("LastRunPercent", p);
+            levelProgressPercentText.rectTransform.DOKill();
+            levelProgressPercentText.rectTransform.localScale = Vector3.one * 0.85f;
+            levelProgressPercentText
+                .rectTransform.DOScale(Vector3.one, 0.22f)
+                .SetEase(Ease.OutBack)
+                .SetUpdate(true);
+        }
+
         ResetButtons();
         AnimateButtonsSequentially();
         UISoundManager.Instance?.PlaySceneSFX();
@@ -363,13 +436,14 @@ public class GameManager : MonoBehaviour
         StartCoroutine(FreezeTimeDelayed());
     }
 
-    void AnimateButtonsSequentially()
+    private void AnimateButtonsSequentially()
     {
         Button[] buttons = { resStartBTN, menuBTN };
         for (int i = 0; i < buttons.Length; i++)
         {
             if (buttons[i] == null)
                 continue;
+
             RectTransform rt = buttons[i].GetComponent<RectTransform>();
             CanvasGroup cg =
                 buttons[i].GetComponent<CanvasGroup>()
@@ -379,26 +453,29 @@ public class GameManager : MonoBehaviour
             rt.localScale = Vector3.zero;
             cg.alpha = 0f;
             float delay = i * 0.1f;
+
             rt.DOAnchorPos(finalPos, 0.6f).SetDelay(delay).SetEase(Ease.OutBack).SetUpdate(true);
             rt.DOScale(Vector3.one, 0.5f).SetDelay(delay).SetEase(Ease.OutBack).SetUpdate(true);
             cg.DOFade(1f, 0.4f).SetDelay(delay).SetUpdate(true);
         }
     }
 
-    IEnumerator ShowGiftAfterGameOver()
+    private IEnumerator ShowGiftAfterGameOver()
     {
         yield return new WaitForSecondsRealtime(0.35f);
         TaskManager.Instance?.CheckGiftStatus();
         MissionManager.Instance?.OpenPanel();
     }
 
-    void ResetButtons()
+    private void ResetButtons()
     {
         Button[] buttons = { resStartBTN, menuBTN, skinsButton };
-        foreach (var btn in buttons)
+        for (int i = 0; i < buttons.Length; i++)
         {
+            Button btn = buttons[i];
             if (btn == null)
                 continue;
+
             btn.transform.localScale = Vector3.zero;
             if (btn.TryGetComponent<CanvasGroup>(out var cg))
                 cg.alpha = 0f;
@@ -409,6 +486,7 @@ public class GameManager : MonoBehaviour
     {
         isSettingsOpen = true;
         Time.timeScale = 0f;
+        Time.fixedDeltaTime = _defaultFixedDeltaTime;
         SkinsManager.Instance?.OpenSkins();
     }
 
@@ -427,14 +505,15 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    IEnumerator FreezeTimeDelayed()
+    private IEnumerator FreezeTimeDelayed()
     {
         yield return new WaitForSecondsRealtime(animDuration);
+        Time.fixedDeltaTime = _defaultFixedDeltaTime;
         Time.timeScale = 0f;
         isSettingsOpen = true;
     }
 
-    string GetComboText()
+    private string GetComboText()
     {
         if (comboCount >= 10)
             return "ULTIMATE!!";
@@ -445,3 +524,5 @@ public class GameManager : MonoBehaviour
         return "PERFECT!";
     }
 }
+
+

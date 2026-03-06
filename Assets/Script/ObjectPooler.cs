@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 public class ObjectPooler : MonoBehaviour
@@ -14,41 +14,106 @@ public class ObjectPooler : MonoBehaviour
     }
 
     public List<Pool> pools;
-    public Dictionary<string, Queue<GameObject>> poolDictionary;
 
-    void Awake()
+    private readonly Dictionary<string, Queue<GameObject>> poolDictionary = new Dictionary<string, Queue<GameObject>>();
+    private readonly Dictionary<string, Pool> poolConfigDictionary = new Dictionary<string, Pool>();
+
+    private void Awake()
     {
         Instance = this;
-        poolDictionary = new Dictionary<string, Queue<GameObject>>();
+        poolDictionary.Clear();
+        poolConfigDictionary.Clear();
 
-        foreach (Pool pool in pools)
+        if (pools == null)
+            return;
+
+        for (int i = 0; i < pools.Count; i++)
         {
-            Queue<GameObject> objectPool = new Queue<GameObject>();
+            Pool pool = pools[i];
+            if (pool == null || string.IsNullOrEmpty(pool.tag) || pool.prefab == null)
+                continue;
 
-            for (int i = 0; i < pool.size; i++)
-            {
-                GameObject obj = Instantiate(pool.prefab);
-                obj.SetActive(false);
-                objectPool.Enqueue(obj);
-            }
+            Queue<GameObject> objectPool = new Queue<GameObject>(Mathf.Max(1, pool.size));
+            Transform parent = new GameObject("Pool_" + pool.tag).transform;
+            parent.SetParent(transform);
 
-            poolDictionary.Add(pool.tag, objectPool);
+            int initialSize = Mathf.Max(1, pool.size);
+            for (int j = 0; j < initialSize; j++)
+                objectPool.Enqueue(CreatePooledObject(pool, parent));
+
+            poolDictionary[pool.tag] = objectPool;
+            poolConfigDictionary[pool.tag] = pool;
         }
     }
 
     public GameObject SpawnFromPool(string tag, Vector3 position, Quaternion rotation)
     {
-        if (!poolDictionary.ContainsKey(tag))
+        if (!poolDictionary.TryGetValue(tag, out Queue<GameObject> objectPool))
             return null;
 
-        GameObject objectToSpawn = poolDictionary[tag].Dequeue();
+        int count = objectPool.Count;
+        for (int i = 0; i < count; i++)
+        {
+            GameObject candidate = objectPool.Dequeue();
+            objectPool.Enqueue(candidate);
 
-        objectToSpawn.SetActive(true);
-        objectToSpawn.transform.position = position;
-        objectToSpawn.transform.rotation = rotation;
+            if (candidate == null)
+                continue;
 
-        poolDictionary[tag].Enqueue(objectToSpawn);
+            if (!candidate.activeInHierarchy)
+            {
+                PrepareSpawn(candidate, position, rotation);
+                return candidate;
+            }
+        }
 
-        return objectToSpawn;
+        if (poolConfigDictionary.TryGetValue(tag, out Pool config) && config.prefab != null)
+        {
+            GameObject created = CreatePooledObject(config, transform);
+            objectPool.Enqueue(created);
+            PrepareSpawn(created, position, rotation);
+            return created;
+        }
+
+        return null;
+    }
+
+    public bool HasActiveObject(string tag)
+    {
+        if (!poolDictionary.TryGetValue(tag, out Queue<GameObject> objectPool))
+            return false;
+
+        foreach (GameObject obj in objectPool)
+        {
+            if (obj != null && obj.activeInHierarchy)
+                return true;
+        }
+
+        return false;
+    }
+
+    public void DeactivateAll(string tag)
+    {
+        if (!poolDictionary.TryGetValue(tag, out Queue<GameObject> objectPool))
+            return;
+
+        foreach (GameObject obj in objectPool)
+        {
+            if (obj != null && obj.activeInHierarchy)
+                obj.SetActive(false);
+        }
+    }
+
+    private static void PrepareSpawn(GameObject obj, Vector3 position, Quaternion rotation)
+    {
+        obj.transform.SetPositionAndRotation(position, rotation);
+        obj.SetActive(true);
+    }
+
+    private static GameObject CreatePooledObject(Pool pool, Transform parent)
+    {
+        GameObject obj = Instantiate(pool.prefab, parent);
+        obj.SetActive(false);
+        return obj;
     }
 }

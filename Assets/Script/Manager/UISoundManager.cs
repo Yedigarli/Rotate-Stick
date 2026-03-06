@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using UnityEngine;
 
 public class UISoundManager : MonoBehaviour
@@ -60,11 +60,19 @@ public class UISoundManager : MonoBehaviour
         }
     }
 
-    // --- 🔹 SFX SƏSLƏRİ (Mute Yoxlaması ilə) ---
+    private void TriggerHaptic()
+    {
+#if UNITY_ANDROID || UNITY_IOS
+        if (isVibrationOn)
+            Handheld.Vibrate();
+#endif
+    }
+
     public void PlayClick()
     {
         if (!isSoundOn || sfxSource == null || clickSFX == null)
             return;
+
         sfxSource.PlayOneShot(clickSFX);
     }
 
@@ -72,13 +80,16 @@ public class UISoundManager : MonoBehaviour
     {
         if (!isSoundOn || sfxSource == null || levelUpSFX == null)
             return;
+
         sfxSource.PlayOneShot(levelUpSFX);
+        TriggerHaptic();
     }
 
     public void PlayStarSFX()
     {
         if (!isSoundOn || sfxSource == null || upstarSFX == null)
             return;
+
         sfxSource.PlayOneShot(upstarSFX);
     }
 
@@ -90,6 +101,10 @@ public class UISoundManager : MonoBehaviour
         float newPitch = 1.0f + (comboCount * 0.05f);
         sfxSource.pitch = Mathf.Clamp(newPitch, 1f, 1.6f);
         sfxSource.PlayOneShot(handleSFX);
+
+        if (comboCount >= 3)
+            TriggerHaptic();
+
         StartCoroutine(ResetPitchAfterSound());
     }
 
@@ -104,6 +119,7 @@ public class UISoundManager : MonoBehaviour
         if (overSFXCoroutine != null)
             StopCoroutine(overSFXCoroutine);
         overSFXCoroutine = StartCoroutine(DelayedOverSFX(0.1f));
+        TriggerHaptic();
     }
 
     private IEnumerator DelayedOverSFX(float delay)
@@ -116,6 +132,7 @@ public class UISoundManager : MonoBehaviour
     {
         if (!isSoundOn || sfxSource == null || sceneSFX == null)
             return;
+
         if (sceneLoadSFXCoroutine != null)
             StopCoroutine(sceneLoadSFXCoroutine);
         sceneLoadSFXCoroutine = StartCoroutine(DelayedSceneLoadSFX(0.25f));
@@ -134,27 +151,35 @@ public class UISoundManager : MonoBehaviour
             sfxSource.pitch = 1.0f;
     }
 
-    // --- 🔹 MUSİQİ SÜRƏTİ ---
     public void UpdateMusicPitch(float currentSpeed, float firstSpeed)
     {
         if (musicSource == null)
             return;
+
         float speedDiff = currentSpeed - firstSpeed;
         float pitchIncr = speedDiff / 400f;
         musicSource.pitch = Mathf.Clamp(1f + pitchIncr, 1f, maxMusicPitch);
     }
 
-    // --- 🔹 AYARLARI DƏYİŞDİR ---
     public void ToggleSound()
     {
         isSoundOn = !isSoundOn;
         PlayerPrefs.SetInt("SoundEnabled", isSoundOn ? 1 : 0);
+        PlayerPrefs.Save();
     }
 
     public void ToggleMusic()
     {
         isMusicOn = !isMusicOn;
         PlayerPrefs.SetInt("MusicEnabled", isMusicOn ? 1 : 0);
+        PlayerPrefs.Save();
         ApplyMusicSettings();
+    }
+
+    public void ToggleVibration()
+    {
+        isVibrationOn = !isVibrationOn;
+        PlayerPrefs.SetInt("VibrationEnabled", isVibrationOn ? 1 : 0);
+        PlayerPrefs.Save();
     }
 }

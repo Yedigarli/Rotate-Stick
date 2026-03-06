@@ -1,4 +1,5 @@
-using System.Collections;
+﻿using System.Collections;
+using DG.Tweening;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -16,9 +17,9 @@ public class SkinButton : MonoBehaviour
 
     [ColorUsage(showAlpha: true, hdr: true)]
     public Color selectedColor = Color.yellow;
-    public Color unlockedColor = new Color(0.8f, 0.8f, 0.8f, 1f); // Gümüşü/Boz rəng (unlocked üçün)
+    public Color unlockedColor = new Color(0.8f, 0.8f, 0.8f, 1f);
 
-    private Coroutine scaleCoroutine;
+    private Tween selectTween;
 
     private void Start()
     {
@@ -36,17 +37,16 @@ public class SkinButton : MonoBehaviour
 
     private void OnEnable()
     {
-        if (skin != null)
-        {
-            // Bir kadr gözləyirik ki, bütün UI elementləri "Wake Up" olsun
-            StopAllCoroutines();
-            StartCoroutine(EnableRoutine());
-        }
+        if (skin == null)
+            return;
+
+        StopAllCoroutines();
+        StartCoroutine(EnableRoutine());
     }
 
-    IEnumerator EnableRoutine()
+    private IEnumerator EnableRoutine()
     {
-        yield return null; // 1 frame gözlə
+        yield return null;
         UpdateUI();
     }
 
@@ -55,97 +55,60 @@ public class SkinButton : MonoBehaviour
         if (skin == null)
             return;
 
-        // PlayerPrefs-dən kilid vəziyyətini oxu
-        bool unlocked =
-            PlayerPrefs.GetInt("Skin_" + skin.skinID, skin.unlockedByDefault ? 1 : 0) == 1;
+        bool unlocked = PlayerPrefs.GetInt("Skin_" + skin.skinID, skin.unlockedByDefault ? 1 : 0) == 1;
         string selectedID = PlayerPrefs.GetString("SelectedSkin", "");
 
         if (!unlocked)
         {
-            // KİLİDLİ HAL
             priceContainer.SetActive(true);
             lockIcon.SetActive(true);
-            priceText.text = skin.price.ToString();
-            buttonBg.color = new Color(0.2f, 0.2f, 0.2f, 0.8f); // Tünd rəng
-            icon.color = Color.black; // Top qara görünsün
+            priceText.SetText("{0}", skin.price);
+            buttonBg.color = new Color(0.2f, 0.2f, 0.2f, 0.8f);
+            icon.color = Color.black;
+            return;
         }
+
+        priceContainer.SetActive(false);
+        lockIcon.SetActive(false);
+        icon.color = Color.white;
+
+        bool isSelected = selectedID == skin.skinID;
+        buttonBg.color = isSelected ? selectedColor : unlockedColor;
+
+        if (isSelected)
+            PlaySelectedAnimation();
         else
-        {
-            // AÇIQ HAL
-            priceContainer.SetActive(false);
-            lockIcon.SetActive(false);
-            icon.color = Color.white;
-
-            if (selectedID == skin.skinID)
-            {
-                buttonBg.color = selectedColor; // Seçili rəng (məs: Sarı)
-            }
-            else
-            {
-                buttonBg.color = unlockedColor; // Sadəcə açıq olan rəng (məs: Boz)
-            }
-        }
+            transform.localScale = Vector3.one;
     }
 
-    void StartScaleAnim()
+    public void PlaySelectedAnimation()
     {
-        // Əgər artıq işləyirsə, təzədən başlatma
-        if (scaleCoroutine == null)
-        {
-            //scaleCoroutine = StartCoroutine(PulseAnimation());
-        }
-    }
+        selectTween?.Kill();
+        transform.DOKill();
+        icon.transform.DOKill();
 
-    void StopScaleAnim()
-    {
-        if (scaleCoroutine != null)
-        {
-            StopCoroutine(scaleCoroutine);
-            scaleCoroutine = null;
-        }
+        transform.localScale = Vector3.one;
         icon.transform.localScale = Vector3.one;
+
+        Sequence seq = DOTween.Sequence().SetUpdate(true);
+        seq.Append(transform.DOScale(1.07f, 0.12f).SetEase(Ease.OutQuad));
+        seq.Append(transform.DOScale(1f, 0.15f).SetEase(Ease.OutBack));
+        seq.Join(icon.transform.DOPunchScale(Vector3.one * 0.12f, 0.25f, 5, 0.8f));
+        selectTween = seq;
     }
-
-    // IEnumerator PulseAnimation()
-    // {
-    //     // UI panelləri adətən Time.timeScale = 0 olsa da işləməlidir
-    //     while (true)
-    //     {
-    //         float duration = 0.8f;
-    //         float elapsed = 0f;
-
-    //         while (elapsed < duration)
-    //         {
-    //             elapsed += Time.unscaledDeltaTime; // Oyun dayansa belə animasiya işləsin
-    //             float s = Mathf.Lerp(1f, 1.15f, Mathf.Sin((elapsed / duration) * Mathf.PI));
-    //             icon.transform.localScale = new Vector3(s, s, 1f);
-    //             yield return null;
-    //         }
-    //     }
-    // }
 
     public void Click()
     {
-        // Düyməyə basanda vizual geri bildirim
-        StopAllCoroutines(); // ResetScale üçün köhnəni dayandır
-        transform.localScale = Vector3.one * 0.9f;
-        StartCoroutine(ResetScale());
+        transform.DOKill();
+        transform.localScale = Vector3.one * 0.92f;
+        transform.DOScale(1f, 0.12f).SetEase(Ease.OutBack).SetUpdate(true);
 
         if (SkinsManager.Instance != null)
             SkinsManager.Instance.SelectSkin(skin);
     }
 
-    IEnumerator ResetScale()
-    {
-        yield return new WaitForSecondsRealtime(0.05f);
-        transform.localScale = Vector3.one;
-        // Əgər seçilidirsə, Pulse animasiyasını geri qaytar (UpdateUI bunu edəcək)
-        UpdateUI();
-    }
-
     public void MakeSpriteGlow(SpriteRenderer sr, float intensity)
     {
-        // Spritun rəngini HDR faktoruna vuraraq parladırıq
         float factor = Mathf.Pow(2, intensity);
         sr.color = new Color(1 * factor, 1 * factor, 1 * factor, 1);
     }
