@@ -21,7 +21,7 @@ public class UISoundManager : MonoBehaviour
     public float maxMusicPitch = 1.15f;
 
     [Header("Settings State")]
-    public bool isVibrationOn = true;
+    public bool isVibrationOn = false;
     public bool isSoundOn = true;
     public bool isMusicOn = true;
 
@@ -43,7 +43,8 @@ public class UISoundManager : MonoBehaviour
 
     private void Start()
     {
-        isVibrationOn = PlayerPrefs.GetInt("VibrationEnabled", 1) == 1;
+        isVibrationOn = false;
+        PlayerPrefs.SetInt("VibrationEnabled", 0);
         isSoundOn = PlayerPrefs.GetInt("SoundEnabled", 1) == 1;
         isMusicOn = PlayerPrefs.GetInt("MusicEnabled", 1) == 1;
 
@@ -60,13 +61,7 @@ public class UISoundManager : MonoBehaviour
         }
     }
 
-    private void TriggerHaptic()
-    {
-#if UNITY_ANDROID || UNITY_IOS
-        if (isVibrationOn)
-            Handheld.Vibrate();
-#endif
-    }
+    private void TriggerHaptic() { }
 
     public void PlayClick()
     {
@@ -178,8 +173,10 @@ public class UISoundManager : MonoBehaviour
 
     public void ToggleVibration()
     {
-        isVibrationOn = !isVibrationOn;
-        PlayerPrefs.SetInt("VibrationEnabled", isVibrationOn ? 1 : 0);
+        isVibrationOn = false;
+        PlayerPrefs.SetInt("VibrationEnabled", 0);
         PlayerPrefs.Save();
     }
 }
+
+

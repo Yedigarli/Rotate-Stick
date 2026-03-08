@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
@@ -32,6 +32,7 @@ public class MissionManager : MonoBehaviour
 
     private DateTime? nextMissionTimeUtc;
     private float nextTimerRefresh;
+    private string lastMissionTimerLabel;
 
     private const string NextMissionTicksKey = "NextMissionTicksUtc";
 
@@ -39,13 +40,8 @@ public class MissionManager : MonoBehaviour
     {
         Instance = this;
 
-        ConfigureTextLayout();
-
         if (missionPanel != null)
-        {
             missionPanel.gameObject.SetActive(false);
-            missionPanel.anchoredPosition = new Vector2(-1200f, missionPanel.anchoredPosition.y);
-        }
 
         CheckDailyReset();
         LoadState();
@@ -64,34 +60,6 @@ public class MissionManager : MonoBehaviour
 
         nextTimerRefresh = Time.unscaledTime + 1f;
         UpdateTimerUI();
-    }
-
-    private void ConfigureTextLayout()
-    {
-        if (missionNameText != null)
-        {
-            missionNameText.enableWordWrapping = true;
-            missionNameText.overflowMode = TextOverflowModes.Ellipsis;
-            missionNameText.alignment = TextAlignmentOptions.Center;
-        }
-
-        if (progressText != null)
-        {
-            progressText.enableWordWrapping = false;
-            progressText.alignment = TextAlignmentOptions.Center;
-        }
-
-        if (claimButtonText != null)
-        {
-            claimButtonText.enableWordWrapping = false;
-            claimButtonText.alignment = TextAlignmentOptions.Center;
-        }
-
-        if (timerText != null)
-        {
-            timerText.enableWordWrapping = false;
-            timerText.alignment = TextAlignmentOptions.Center;
-        }
     }
 
     private static DateTime UtcNow() => DateTime.UtcNow;
@@ -135,7 +103,12 @@ public class MissionManager : MonoBehaviour
         {
             timerText.gameObject.SetActive(true);
             int totalHours = Mathf.Max(0, (int)diff.TotalHours);
-            timerText.SetText("{0:D2}:{1:D2}:{2:D2}", totalHours, diff.Minutes, diff.Seconds);
+            string label = string.Format("{0:D2}:{1:D2}:{2:D2}", totalHours, diff.Minutes, diff.Seconds);
+            if (lastMissionTimerLabel != label)
+            {
+                lastMissionTimerLabel = label;
+                timerText.SetText(label);
+            }
         }
     }
 
@@ -230,7 +203,10 @@ public class MissionManager : MonoBehaviour
         if (animate)
         {
             progressBarFill.DOKill();
-            progressBarFill.DOFillAmount(fill, 0.25f).SetUpdate(true);
+            progressBarFill
+                .DOFillAmount(fill, 0.25f)
+                .SetUpdate(true)
+                .SetLink(progressBarFill.gameObject, LinkBehaviour.KillOnDestroy);
         }
         else
         {
@@ -269,9 +245,10 @@ public class MissionManager : MonoBehaviour
         claimButton.transform.DOKill();
         claimButton.transform.localScale = Vector3.one;
         claimButton
-            .transform.DOPunchScale(Vector3.one * 0.1f, 0.45f, 4)
-            .SetLoops(-1)
-            .SetUpdate(true);
+            .transform.DOScale(1.05f, 0.45f)
+            .SetLoops(-1, LoopType.Yoyo)
+            .SetUpdate(true)
+            .SetLink(claimButton.gameObject, LinkBehaviour.KillOnDestroy);
     }
 
     private void SaveState()
@@ -302,6 +279,31 @@ public class MissionManager : MonoBehaviour
             SaveState();
         }
     }
+
+    public bool IsMissionClaimReady()
+    {
+        return !isWaiting && isDone && currentIdx < names.Length;
+    }
+
+    public float GetMissionFill01()
+    {
+        if (currentIdx >= names.Length)
+            return 1f;
+
+        if (isWaiting)
+        {
+            if (!nextMissionTimeUtc.HasValue)
+                return 0f;
+
+            DateTime startUtc = nextMissionTimeUtc.Value.AddHours(-hoursBetweenMissions);
+            double totalSeconds = Math.Max(1d, hoursBetweenMissions * 3600d);
+            double elapsedSeconds = (UtcNow() - startUtc).TotalSeconds;
+            return Mathf.Clamp01((float)(elapsedSeconds / totalSeconds));
+        }
+
+        return Mathf.Clamp01((float)currentProg / Mathf.Max(1, goals[currentIdx]));
+    }
+
     private void OnDisable()
     {
         if (missionPanel != null)

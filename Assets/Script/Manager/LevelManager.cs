@@ -35,9 +35,9 @@ public class LevelManager : MonoBehaviour
     public GameObject levelUpParticlePrefab;
 
     [Header("Randomized Words")]
-    private readonly string[] perfectWords = { "PERFECT!", "AMAZING!", "FANTASTIC!", "BULLSEYE!" };
-    private readonly string[] niceWords = { "NICE!", "GOOD!", "COOL!", "NOT BAD!" };
-    private readonly string[] insaneWords = { "INSANE!", "GODLIKE!", "UNSTOPPABLE!", "MONSTER!" };
+    private readonly string[] perfectWords = { "PERFECT!", "AMAZING!", "FANTASTIC!", "BULLSEYE!", "EXCELLENT!" };
+    private readonly string[] niceWords = { "NICE!", "GOOD!", "COOL!", "NOT BAD!", "GREAT!" };
+    private readonly string[] insaneWords = { "INSANE!", "INCREDIBLE!", "UNSTOPPABLE!", "MONSTER!", "AWESOME!" };
 
     [Header("Level Dynamic Colors")]
     public Image currentLevelCircle;
@@ -113,12 +113,6 @@ public class LevelManager : MonoBehaviour
         {
             GameManager.Instance.baseBallColor = currentLevelThemeColor;
             GameManager.Instance.ballGlowColor = currentLevelThemeColor;
-
-            if (cachedCamera != null)
-            {
-                cachedCamera.DOKill();
-                cachedCamera.DOColor(currentLevelThemeColor * 0.15f, 1.2f).SetEase(Ease.Linear);
-            }
         }
     }
 
@@ -133,7 +127,7 @@ public class LevelManager : MonoBehaviour
         {
             float fillRatio = (float)currentPoints / pointsToNextLevel;
             progressBarFill.DOKill();
-            progressBarFill.DOFillAmount(fillRatio, 0.35f).SetEase(Ease.OutCubic);
+            progressBarFill.DOFillAmount(fillRatio, 0.35f).SetEase(Ease.OutCubic).SetLink(progressBarFill.gameObject, LinkBehaviour.KillOnDestroy);
         }
 
         CheckBestScore();
@@ -187,7 +181,8 @@ public class LevelManager : MonoBehaviour
         SpawnLevelUpEffect();
         ShowStatus("LEVEL UP!", levelUpColor);
 
-        progressBarFill?.DOFillAmount(0f, 0.25f).SetDelay(0.35f).SetEase(Ease.InOutSine);
+        if (progressBarFill != null)
+            progressBarFill.DOFillAmount(0f, 0.25f).SetDelay(0.35f).SetEase(Ease.InOutSine).SetLink(progressBarFill.gameObject, LinkBehaviour.KillOnDestroy);
 
         if (taskManager != null)
             taskManager.StartStarAnimation_NoTimer(levelUpStarReward, levelUpStarReward);
@@ -256,7 +251,7 @@ public class LevelManager : MonoBehaviour
     {
         rt.DOKill();
         rt.localScale = Vector3.one;
-        rt.DOPunchScale(Vector3.one * 0.22f, 0.35f, 2, 0.5f).SetUpdate(true);
+        rt.DOPunchScale(Vector3.one * 0.22f, 0.35f, 2, 0.5f).SetUpdate(true).SetLink(rt.gameObject, LinkBehaviour.KillOnDestroy);
     }
 
     public string GetCurrentLevelPercentage()
@@ -297,3 +292,7 @@ public class LevelManager : MonoBehaviour
         return Mathf.Clamp(progress, 0f, 100f);
     }
 }
+
+
+
+

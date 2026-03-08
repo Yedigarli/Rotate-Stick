@@ -179,7 +179,34 @@ public class SkinsManager : MonoBehaviour
 
         isAnimating = false;
     }
+    public int GetUnlockedSkinCount()
+    {
+        if (skins == null || skins.Length == 0)
+            return 0;
 
+        int unlocked = 0;
+        for (int i = 0; i < skins.Length; i++)
+        {
+            SkinData skin = skins[i];
+            if (skin == null)
+                continue;
+
+            string skinKey = "Skin_" + skin.skinID;
+            bool isUnlocked = PlayerPrefs.GetInt(skinKey, skin.unlockedByDefault ? 1 : 0) == 1;
+            if (isUnlocked)
+                unlocked++;
+        }
+
+        return unlocked;
+    }
+
+    public float GetUnlockedSkinsFill01()
+    {
+        if (skins == null || skins.Length == 0)
+            return 0f;
+
+        return Mathf.Clamp01((float)GetUnlockedSkinCount() / skins.Length);
+    }
     private void SetBallsActive(bool state)
     {
         if (MainMenuManager.Instance != null)
@@ -201,3 +228,4 @@ public class SkinsManager : MonoBehaviour
         }
     }
 }
+

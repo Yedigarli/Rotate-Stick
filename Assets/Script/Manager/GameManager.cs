@@ -1,6 +1,5 @@
-﻿using System.Collections;
+using System.Collections;
 using DG.Tweening;
-using MaskTransitions;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -49,10 +48,8 @@ public class GameManager : MonoBehaviour
     public TMP_Text levelProgressPercentText;
     public CanvasGroup canvasGroup;
     public Button resStartBTN,
-        menuBTN,
-        skinsButton,
-        useStarBtn,
-        noThanksBtn;
+        menuBTN
+        ;
 
     [Header("Colors (HDR)")]
     [ColorUsage(true, true)]
@@ -68,6 +65,9 @@ public class GameManager : MonoBehaviour
 
     [Header("Optimized References")]
     private Canvas mainCanvas;
+
+    [Header("Floating Text")]
+    public bool enableFloatingText = false;
     private float _defaultFixedDeltaTime;
 
     private void Awake()
@@ -129,9 +129,6 @@ public class GameManager : MonoBehaviour
     {
         resStartBTN?.onClick.AddListener(() => RestartLevel("Game"));
         menuBTN?.onClick.AddListener(() => RestartLevel("Menu"));
-        skinsButton?.onClick.AddListener(OpenSkinsMenu);
-        noThanksBtn?.onClick.AddListener(CloseSecondChanceAndShowGameOver);
-        useStarBtn?.onClick.AddListener(HandleContinueButton);
     }
 
     private void HandleShoot()
@@ -237,6 +234,8 @@ public class GameManager : MonoBehaviour
 
     private void CreateFloatingText(Vector3 pos, string text, Color color)
     {
+        if (!enableFloatingText)
+            return;
         GameObject fText = ObjectPooler.Instance.SpawnFromPool(
             floatingTextTag,
             pos,
@@ -279,9 +278,6 @@ public class GameManager : MonoBehaviour
         {
             tmp.SetText(text);
             tmp.color = color;
-            tmp.alignment = TextAlignmentOptions.Center;
-            tmp.enableWordWrapping = false;
-            tmp.overflowMode = TextOverflowModes.Overflow;
         }
     }
 
@@ -436,40 +432,63 @@ public class GameManager : MonoBehaviour
         StartCoroutine(FreezeTimeDelayed());
     }
 
-    private void AnimateButtonsSequentially()
+        private void AnimateButtonsSequentially()
     {
         Button[] buttons = { resStartBTN, menuBTN };
+        RectTransform[] rects = new RectTransform[buttons.Length];
+        Vector2[] finalPositions = new Vector2[buttons.Length];
+
         for (int i = 0; i < buttons.Length; i++)
         {
             if (buttons[i] == null)
                 continue;
 
-            RectTransform rt = buttons[i].GetComponent<RectTransform>();
-            CanvasGroup cg =
-                buttons[i].GetComponent<CanvasGroup>()
-                ?? buttons[i].gameObject.AddComponent<CanvasGroup>();
-            Vector2 finalPos = rt.anchoredPosition;
-            rt.anchoredPosition = new Vector2(finalPos.x, finalPos.y - 150f);
-            rt.localScale = Vector3.zero;
-            cg.alpha = 0f;
-            float delay = i * 0.1f;
+            rects[i] = buttons[i].GetComponent<RectTransform>();
+            if (rects[i] != null)
+                finalPositions[i] = rects[i].anchoredPosition;
+        }
 
-            rt.DOAnchorPos(finalPos, 0.6f).SetDelay(delay).SetEase(Ease.OutBack).SetUpdate(true);
-            rt.DOScale(Vector3.one, 0.5f).SetDelay(delay).SetEase(Ease.OutBack).SetUpdate(true);
-            cg.DOFade(1f, 0.4f).SetDelay(delay).SetUpdate(true);
+        if (rects[0] != null && rects[1] != null && Mathf.Abs(finalPositions[0].x - finalPositions[1].x) < 20f)
+        {
+            float y = finalPositions[0].y;
+            finalPositions[0] = new Vector2(-170f, y);
+            finalPositions[1] = new Vector2(170f, y);
+        }
+
+        for (int i = 0; i < buttons.Length; i++)
+        {
+            if (buttons[i] == null || rects[i] == null)
+                continue;
+
+            RectTransform rt = rects[i];
+            CanvasGroup cg = buttons[i].GetComponent<CanvasGroup>() ?? buttons[i].gameObject.AddComponent<CanvasGroup>();
+
+            rt.DOKill();
+            cg.DOKill();
+
+            Vector2 finalPos = finalPositions[i];
+            rt.anchoredPosition = new Vector2(finalPos.x, finalPos.y - 180f);
+            rt.localScale = Vector3.one * 0.75f;
+            rt.localRotation = Quaternion.Euler(0f, 0f, i == 0 ? -6f : 6f);
+            cg.alpha = 0f;
+
+            float delay = i * 0.08f;
+            rt.DOAnchorPos(finalPos, 0.5f).SetDelay(delay).SetEase(Ease.OutCubic).SetUpdate(true);
+            rt.DOScale(Vector3.one, 0.42f).SetDelay(delay).SetEase(Ease.OutBack).SetUpdate(true);
+            rt.DORotate(Vector3.zero, 0.42f).SetDelay(delay).SetEase(Ease.OutCubic).SetUpdate(true);
+            cg.DOFade(1f, 0.3f).SetDelay(delay).SetUpdate(true);
         }
     }
 
     private IEnumerator ShowGiftAfterGameOver()
     {
         yield return new WaitForSecondsRealtime(0.35f);
-        TaskManager.Instance?.CheckGiftStatus();
         MissionManager.Instance?.OpenPanel();
     }
 
     private void ResetButtons()
     {
-        Button[] buttons = { resStartBTN, menuBTN, skinsButton };
+        Button[] buttons = { resStartBTN, menuBTN };
         for (int i = 0; i < buttons.Length; i++)
         {
             Button btn = buttons[i];
@@ -524,5 +543,14 @@ public class GameManager : MonoBehaviour
         return "PERFECT!";
     }
 }
+
+
+
+
+
+
+
+
+
 
 

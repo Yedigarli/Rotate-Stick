@@ -67,6 +67,9 @@ public class TransitionManager : MonoBehaviour
 
         yield return null;
 
+        if (ObjectPooler.Instance != null)
+            ObjectPooler.Instance.DeactivateAll("FloatingText");
+
         transitionCount++;
         if (transitionCount % 2 == 0)
         {
@@ -97,3 +100,5 @@ public class TransitionManager : MonoBehaviour
             .OnComplete(() => transitionCanvasGroup.gameObject.SetActive(false));
     }
 }
+
+

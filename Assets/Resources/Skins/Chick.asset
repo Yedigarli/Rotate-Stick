@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1e266c9a9d025b4795517277d23fbfb, type: 3}
+  m_Name: Chick
+  m_EditorClassIdentifier: 
+  skinID: Chick
+  sprite: {fileID: -1193994295217400307, guid: 5759dac131aa64649b4ca2cae3d04387, type: 3}
+  menuScale: {x: 1, y: 1, z: 1}
+  menuYOffset: 0.4
+  gameScale: {x: 1, y: 1, z: 1}
+  gameYOffset: 0.38
+  price: 0
+  unlockedByDefault: 0

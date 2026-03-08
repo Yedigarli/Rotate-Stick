@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
@@ -34,7 +34,7 @@ public class TaskManager : MonoBehaviour
     public float totalDelay = 0.4f;
 
     [Header("Cooldown Settings")]
-    public float giftCooldownHours = 24f;
+    public float giftCooldownHours = 2f;
 
     private int starsReachedTarget;
     private bool isReadyStateActive;
@@ -42,6 +42,7 @@ public class TaskManager : MonoBehaviour
     private float nextTimerRefresh;
     private Transform giftButtonTransform;
     private Transform rewardTextTransform;
+    private string lastTimerLabel;
 
     private const string LastGiftTicksKey = "FreeGiftTicksUtc";
     private static readonly Color DisabledGlowColor = new Color(0.3f, 0.3f, 0.3f, 0.5f);
@@ -50,44 +51,14 @@ public class TaskManager : MonoBehaviour
     {
         Instance = this;
 
-        ConfigureTextLayout();
-
         if (giftPanel != null)
-        {
             giftPanel.gameObject.SetActive(false);
-            giftPanel.anchoredPosition = new Vector2(-1200f, giftPanel.anchoredPosition.y);
-        }
 
-        if (rewardText != null && starEnd != null)
-        {
-            rewardText.gameObject.SetActive(false);
-            rewardText.transform.SetParent(starEnd);
-            RectTransform rt = rewardText.GetComponent<RectTransform>();
-            rt.anchoredPosition = new Vector2(0f, 80f);
-            rt.localScale = Vector3.one * 1.5f;
-            rewardText.transform.SetAsLastSibling();
-        }
-
+        giftCooldownHours = 2f;
         LoadGiftTime();
         nextTimerRefresh = Time.unscaledTime;
         giftButtonTransform = getGiftButton != null ? getGiftButton.transform : null;
         rewardTextTransform = rewardText != null ? rewardText.transform : null;
-    }
-
-    private void ConfigureTextLayout()
-    {
-        if (timerText != null)
-        {
-            timerText.alignment = TextAlignmentOptions.Center;
-            timerText.enableWordWrapping = false;
-        }
-
-        if (rewardText != null)
-        {
-            rewardText.alignment = TextAlignmentOptions.Center;
-            rewardText.enableWordWrapping = false;
-            rewardText.overflowMode = TextOverflowModes.Overflow;
-        }
     }
 
     private static DateTime UtcNow() => DateTime.UtcNow;
@@ -144,12 +115,17 @@ public class TaskManager : MonoBehaviour
         getGiftButton.interactable = false;
 
         int totalHours = Mathf.Max(0, (int)remaining.TotalHours);
-        timerText.SetText("{0:D2}:{1:D2}:{2:D2}", totalHours, remaining.Minutes, remaining.Seconds);
+        string timerLabel = string.Format("{0:D2}:{1:D2}:{2:D2}", totalHours, remaining.Minutes, remaining.Seconds);
+        if (lastTimerLabel != timerLabel)
+        {
+            lastTimerLabel = timerLabel;
+            timerText.SetText(lastTimerLabel);
+        }
 
         if (buttonGlow != null)
             buttonGlow.color = DisabledGlowColor;
 
-        getGiftButton.transform.DOKill();
+        giftButtonTransform?.DOKill();
     }
 
     private void SetReady()
@@ -159,14 +135,22 @@ public class TaskManager : MonoBehaviour
 
         isReadyStateActive = true;
         getGiftButton.interactable = true;
-        timerText.SetText("CLAIM GIFT");
+        if (lastTimerLabel != "CLAIM GIFT")
+        {
+            lastTimerLabel = "CLAIM GIFT";
+            timerText.SetText(lastTimerLabel);
+        }
 
-        getGiftButton.transform.DOKill();
-        getGiftButton.transform.localScale = Vector3.one;
-        getGiftButton
-            .transform.DOPunchScale(Vector3.one * 0.12f, 0.8f, 4)
-            .SetLoops(-1)
-            .SetUpdate(true);
+        giftButtonTransform?.DOKill();
+        if (giftButtonTransform != null)
+        {
+            giftButtonTransform.localScale = Vector3.one;
+            giftButtonTransform
+                .DOScale(1.06f, 0.55f)
+                .SetLoops(-1, LoopType.Yoyo)
+                .SetUpdate(true)
+                .SetLink(getGiftButton.gameObject, LinkBehaviour.KillOnDestroy);
+        }
     }
 
     public void CheckGiftStatus()
@@ -176,7 +160,11 @@ public class TaskManager : MonoBehaviour
 
         giftPanel.gameObject.SetActive(true);
         giftPanel.DOKill();
-        giftPanel.DOAnchorPosX(0f, 0.6f).SetEase(Ease.OutBack).SetUpdate(true);
+        giftPanel
+            .DOAnchorPosX(0f, 0.6f)
+            .SetEase(Ease.OutBack)
+            .SetUpdate(true)
+            .SetLink(giftPanel.gameObject, LinkBehaviour.KillOnDestroy);
     }
 
     public void OnGetButtonClick()
@@ -186,8 +174,9 @@ public class TaskManager : MonoBehaviour
         if (getGiftButton != null)
         {
             getGiftButton.interactable = false;
-            getGiftButton.transform.DOKill();
-            getGiftButton.transform.localScale = Vector3.one;
+            giftButtonTransform?.DOKill();
+            if (giftButtonTransform != null)
+                giftButtonTransform.localScale = Vector3.one;
         }
 
         UISoundManager.Instance?.PlayStarSFX();
@@ -239,6 +228,7 @@ public class TaskManager : MonoBehaviour
         s.Append(star.transform.DOMove(starEnd.position, moveDuration).SetEase(moveEase));
         s.Join(star.transform.DOScale(Vector3.one * 0.6f, moveDuration));
         s.SetDelay(delay);
+        s.SetLink(star, LinkBehaviour.KillOnDestroy);
         s.OnComplete(() =>
         {
             starsReachedTarget++;
@@ -246,7 +236,10 @@ public class TaskManager : MonoBehaviour
             if (starEnd != null)
             {
                 starEnd.DOKill(true);
-                starEnd.DOPunchScale(Vector3.one * 0.16f, 0.18f).SetUpdate(true);
+                starEnd
+                    .DOPunchScale(Vector3.one * 0.16f, 0.18f)
+                    .SetUpdate(true)
+                    .SetLink(starEnd.gameObject, LinkBehaviour.KillOnDestroy);
             }
 
             StarManager.Instance?.AddStar(rewardAmount);
@@ -289,7 +282,10 @@ public class TaskManager : MonoBehaviour
         displayedRewardValue += inc;
         rewardText.SetText("+{0}", displayedRewardValue);
         rewardText.transform.DOKill(true);
-        rewardText.transform.DOPunchScale(Vector3.one * 0.18f, 0.1f).SetUpdate(true);
+        rewardText.transform
+            .DOPunchScale(Vector3.one * 0.18f, 0.1f)
+            .SetUpdate(true)
+            .SetLink(rewardText.gameObject, LinkBehaviour.KillOnDestroy);
     }
 
     private void FinalizeRewardDisplay()
@@ -297,11 +293,56 @@ public class TaskManager : MonoBehaviour
         if (rewardText == null)
             return;
 
-        DOVirtual.DelayedCall(0.9f, () =>
-        {
-            if (rewardText != null)
-                rewardText.gameObject.SetActive(false);
-        }).SetUpdate(true);
+        DOVirtual
+            .DelayedCall(
+                0.9f,
+                () =>
+                {
+                    if (rewardText != null)
+                        rewardText.gameObject.SetActive(false);
+                }
+            )
+            .SetUpdate(true)
+            .SetLink(gameObject, LinkBehaviour.KillOnDestroy);
+    }
+
+    public bool IsGiftReadyForClaim()
+    {
+        if (!nextGiftTimeUtc.HasValue)
+            return true;
+
+        return UtcNow() >= nextGiftTimeUtc.Value;
+    }
+
+    public float GetGiftCooldownFill01()
+    {
+        if (!nextGiftTimeUtc.HasValue)
+            return 1f;
+
+        DateTime startUtc = nextGiftTimeUtc.Value.AddHours(-giftCooldownHours);
+        double totalSeconds = Math.Max(1d, giftCooldownHours * 3600d);
+        double elapsedSeconds = (UtcNow() - startUtc).TotalSeconds;
+        return Mathf.Clamp01((float)(elapsedSeconds / totalSeconds));
+    }
+
+    public string GetGiftRemainingText()
+    {
+        if (!nextGiftTimeUtc.HasValue)
+            return "READY";
+
+        TimeSpan remaining = nextGiftTimeUtc.Value - UtcNow();
+        if (remaining.TotalSeconds <= 0)
+            return "READY";
+
+        int totalHours = Mathf.Max(0, (int)remaining.TotalHours);
+        return string.Format("{0:D2}:{1:D2}:{2:D2}", totalHours, remaining.Minutes, remaining.Seconds);
+    }
+
+    private void OnDestroy()
+    {
+        giftButtonTransform?.DOKill();
+        rewardTextTransform?.DOKill();
+        starEnd?.DOKill();
     }
 
     private void OnDisable()
@@ -318,6 +359,3 @@ public class TaskManager : MonoBehaviour
         isReadyStateActive = false;
     }
 }
-
-
-

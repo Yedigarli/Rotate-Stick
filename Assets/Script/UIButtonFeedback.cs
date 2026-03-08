@@ -27,11 +27,7 @@ public class UIButtonFeedback : MonoBehaviour, IPointerDownHandler, IPointerUpHa
         if (playClickSound)
             UISoundManager.Instance?.PlayClick();
 
-#if UNITY_ANDROID || UNITY_IOS
-        if (triggerVibration && UISoundManager.Instance != null && UISoundManager.Instance.isVibrationOn)
-            Handheld.Vibrate();
-#endif
-    }
+}
 
     public void OnPointerUp(PointerEventData eventData)
     {
@@ -44,5 +40,6 @@ public class UIButtonFeedback : MonoBehaviour, IPointerDownHandler, IPointerUpHa
         transform.localScale = originalScale;
     }
 }
+
 
 

@@ -90,10 +90,10 @@ public class SkinButton : MonoBehaviour
         transform.localScale = Vector3.one;
         icon.transform.localScale = Vector3.one;
 
-        Sequence seq = DOTween.Sequence().SetUpdate(true);
+        Sequence seq = DOTween.Sequence().SetUpdate(true).SetLink(gameObject, LinkBehaviour.KillOnDestroy);
         seq.Append(transform.DOScale(1.07f, 0.12f).SetEase(Ease.OutQuad));
         seq.Append(transform.DOScale(1f, 0.15f).SetEase(Ease.OutBack));
-        seq.Join(icon.transform.DOPunchScale(Vector3.one * 0.12f, 0.25f, 5, 0.8f));
+        seq.Join(icon.transform.DOPunchScale(Vector3.one * 0.12f, 0.25f, 5, 0.8f).SetLink(icon.gameObject, LinkBehaviour.KillOnDestroy));
         selectTween = seq;
     }
 
@@ -101,10 +101,18 @@ public class SkinButton : MonoBehaviour
     {
         transform.DOKill();
         transform.localScale = Vector3.one * 0.92f;
-        transform.DOScale(1f, 0.12f).SetEase(Ease.OutBack).SetUpdate(true);
+        transform.DOScale(1f, 0.12f).SetEase(Ease.OutBack).SetUpdate(true).SetLink(gameObject, LinkBehaviour.KillOnDestroy);
 
         if (SkinsManager.Instance != null)
             SkinsManager.Instance.SelectSkin(skin);
+    }
+
+    private void OnDisable()
+    {
+        selectTween?.Kill();
+        transform.DOKill();
+        if (icon != null)
+            icon.transform.DOKill();
     }
 
     public void MakeSpriteGlow(SpriteRenderer sr, float intensity)
@@ -113,3 +121,6 @@ public class SkinButton : MonoBehaviour
         sr.color = new Color(1 * factor, 1 * factor, 1 * factor, 1);
     }
 }
+
+
+
