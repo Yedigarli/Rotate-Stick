@@ -1,4 +1,4 @@
-﻿using DG.Tweening;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -8,7 +8,6 @@ public class UIButtonFeedback : MonoBehaviour, IPointerDownHandler, IPointerUpHa
     public float scaleDownTo = 0.92f;
     public float duration = 0.1f;
     public bool playClickSound = true;
-    public bool triggerVibration = true;
 
     private Vector3 originalScale;
 
@@ -26,8 +25,7 @@ public class UIButtonFeedback : MonoBehaviour, IPointerDownHandler, IPointerUpHa
 
         if (playClickSound)
             UISoundManager.Instance?.PlayClick();
-
-}
+    }
 
     public void OnPointerUp(PointerEventData eventData)
     {
@@ -40,6 +38,3 @@ public class UIButtonFeedback : MonoBehaviour, IPointerDownHandler, IPointerUpHa
         transform.localScale = originalScale;
     }
 }
-
-
-

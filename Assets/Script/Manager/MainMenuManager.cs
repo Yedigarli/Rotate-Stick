@@ -34,11 +34,6 @@ public class MainMenuManager : MonoBehaviour
     public float radius = 1.2f;
     private Vector3 speedDirection = Vector3.forward;
 
-    [Header("Mode UI (kept for scene compatibility)")]
-    public RectTransform highlightBox;
-    public TMP_Text levelsText;
-    public TMP_Text classicText;
-    public RectTransform levelsPos;
 
     [Header("Background")]
     public Camera mainCamera;
@@ -104,17 +99,6 @@ public class MainMenuManager : MonoBehaviour
 
     private void InitializeUI()
     {
-        if (levelBarContainer != null)
-            levelBarContainer.SetActive(true);
-
-        if (levelsText != null)
-            levelsText.DOColor(Color.green, 0.2f);
-        if (classicText != null)
-            classicText.DOColor(Color.white, 0.2f);
-
-        if (highlightBox != null && levelsPos != null)
-            highlightBox.anchoredPosition = levelsPos.anchoredPosition;
-
         if (mainCamera != null)
             mainCamera.backgroundColor = levelsBG;
 
@@ -274,7 +258,6 @@ public class MainMenuManager : MonoBehaviour
     private void OnDisable()
     {
         progressBarFill?.DOKill();
-        highlightBox?.DOKill();
         percentageText?.DOKill();
         skinsButtonFill?.DOKill();
         challengesButtonFill?.DOKill();

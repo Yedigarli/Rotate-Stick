@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using UnityEngine;
 
 public class UISoundManager : MonoBehaviour
@@ -61,8 +61,6 @@ public class UISoundManager : MonoBehaviour
         }
     }
 
-    private void TriggerHaptic() { }
-
     public void PlayClick()
     {
         if (!isSoundOn || sfxSource == null || clickSFX == null)
@@ -77,7 +75,6 @@ public class UISoundManager : MonoBehaviour
             return;
 
         sfxSource.PlayOneShot(levelUpSFX);
-        TriggerHaptic();
     }
 
     public void PlayStarSFX()
@@ -97,9 +94,6 @@ public class UISoundManager : MonoBehaviour
         sfxSource.pitch = Mathf.Clamp(newPitch, 1f, 1.6f);
         sfxSource.PlayOneShot(handleSFX);
 
-        if (comboCount >= 3)
-            TriggerHaptic();
-
         StartCoroutine(ResetPitchAfterSound());
     }
 
@@ -114,7 +108,6 @@ public class UISoundManager : MonoBehaviour
         if (overSFXCoroutine != null)
             StopCoroutine(overSFXCoroutine);
         overSFXCoroutine = StartCoroutine(DelayedOverSFX(0.1f));
-        TriggerHaptic();
     }
 
     private IEnumerator DelayedOverSFX(float delay)
@@ -178,5 +171,3 @@ public class UISoundManager : MonoBehaviour
         PlayerPrefs.Save();
     }
 }
-
-

@@ -1,4 +1,3 @@
-﻿using System.Collections;
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
@@ -53,6 +52,7 @@ public class LevelManager : MonoBehaviour
 
     private TaskManager taskManager;
     private Camera cachedCamera;
+    private Tween statusHideTween;
 
     private static readonly string LevelKey = "level";
     private static readonly string PointsKey = "currentPoints";
@@ -127,7 +127,10 @@ public class LevelManager : MonoBehaviour
         {
             float fillRatio = (float)currentPoints / pointsToNextLevel;
             progressBarFill.DOKill();
-            progressBarFill.DOFillAmount(fillRatio, 0.35f).SetEase(Ease.OutCubic).SetLink(progressBarFill.gameObject, LinkBehaviour.KillOnDestroy);
+            progressBarFill
+                .DOFillAmount(fillRatio, 0.35f)
+                .SetEase(Ease.OutCubic)
+                .SetLink(progressBarFill.gameObject, LinkBehaviour.KillOnDestroy);
         }
 
         CheckBestScore();
@@ -182,7 +185,11 @@ public class LevelManager : MonoBehaviour
         ShowStatus("LEVEL UP!", levelUpColor);
 
         if (progressBarFill != null)
-            progressBarFill.DOFillAmount(0f, 0.25f).SetDelay(0.35f).SetEase(Ease.InOutSine).SetLink(progressBarFill.gameObject, LinkBehaviour.KillOnDestroy);
+            progressBarFill
+                .DOFillAmount(0f, 0.25f)
+                .SetDelay(0.35f)
+                .SetEase(Ease.InOutSine)
+                .SetLink(progressBarFill.gameObject, LinkBehaviour.KillOnDestroy);
 
         if (taskManager != null)
             taskManager.StartStarAnimation_NoTimer(levelUpStarReward, levelUpStarReward);
@@ -225,15 +232,18 @@ public class LevelManager : MonoBehaviour
 
         rect.DOScale(Vector3.one, 0.22f)
             .SetEase(Ease.OutBack)
+            .SetUpdate(true);
+
+        statusHideTween?.Kill();
+        statusHideTween = DOVirtual.DelayedCall(0.87f, HideStatusText)
             .SetUpdate(true)
-            .OnComplete(() =>
-            {
-                DOVirtual.DelayedCall(0.65f, () =>
-                {
-                    if (statusText != null)
-                        statusText.gameObject.SetActive(false);
-                }).SetUpdate(true);
-            });
+            .SetLink(statusText.gameObject, LinkBehaviour.KillOnDestroy);
+    }
+
+    private void HideStatusText()
+    {
+        if (statusText != null)
+            statusText.gameObject.SetActive(false);
     }
 
     private void UpdateLevelTexts()
@@ -251,7 +261,9 @@ public class LevelManager : MonoBehaviour
     {
         rt.DOKill();
         rt.localScale = Vector3.one;
-        rt.DOPunchScale(Vector3.one * 0.22f, 0.35f, 2, 0.5f).SetUpdate(true).SetLink(rt.gameObject, LinkBehaviour.KillOnDestroy);
+        rt.DOPunchScale(Vector3.one * 0.22f, 0.35f, 2, 0.5f)
+            .SetUpdate(true)
+            .SetLink(rt.gameObject, LinkBehaviour.KillOnDestroy);
     }
 
     public string GetCurrentLevelPercentage()
@@ -292,7 +304,4 @@ public class LevelManager : MonoBehaviour
         return Mathf.Clamp(progress, 0f, 100f);
     }
 }
-
-
-
 

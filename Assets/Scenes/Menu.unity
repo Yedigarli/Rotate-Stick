@@ -990,7 +990,6 @@ GameObject:
   m_Component:
   - component: {fileID: 348409805}
   - component: {fileID: 348409810}
-  - component: {fileID: 348409809}
   - component: {fileID: 348409808}
   - component: {fileID: 348409807}
   - component: {fileID: 348409806}
@@ -1082,7 +1081,6 @@ MonoBehaviour:
   scaleDownTo: 0.92
   duration: 0.1
   playClickSound: 1
-  triggerVibration: 1
 --- !u!114 &348409808
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1113,22 +1111,6 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
---- !u!114 &348409809
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 348409804}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c9360c8a562e510418741d0e9fe3fb1b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  breatheScale: 1.05
-  breatheDuration: 0.8
-  glowImage: {fileID: 1820481420}
-  glowMaxAlpha: 0.6
 --- !u!222 &348409810
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1289,7 +1271,6 @@ MonoBehaviour:
   scaleDownTo: 0.92
   duration: 0.1
   playClickSound: 1
-  triggerVibration: 1
 --- !u!1 &369433923
 GameObject:
   m_ObjectHideFlags: 0
@@ -1717,7 +1698,6 @@ MonoBehaviour:
   scaleDownTo: 0.92
   duration: 0.1
   playClickSound: 1
-  triggerVibration: 1
 --- !u!1 &378466332
 GameObject:
   m_ObjectHideFlags: 0
@@ -2874,7 +2854,6 @@ GameObject:
   m_Component:
   - component: {fileID: 708783261}
   - component: {fileID: 708783265}
-  - component: {fileID: 708783264}
   - component: {fileID: 708783263}
   - component: {fileID: 708783262}
   - component: {fileID: 708783267}
@@ -2952,22 +2931,6 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
---- !u!114 &708783264
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 708783260}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c9360c8a562e510418741d0e9fe3fb1b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  breatheScale: 1.05
-  breatheDuration: 0.8
-  glowImage: {fileID: 1580289157}
-  glowMaxAlpha: 0.6
 --- !u!222 &708783265
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -3333,7 +3296,6 @@ MonoBehaviour:
   scaleDownTo: 0.92
   duration: 0.1
   playClickSound: 1
-  triggerVibration: 1
 --- !u!1 &773058229
 GameObject:
   m_ObjectHideFlags: 0
@@ -3647,7 +3609,6 @@ GameObject:
   m_Component:
   - component: {fileID: 833702829}
   - component: {fileID: 833702833}
-  - component: {fileID: 833702832}
   - component: {fileID: 833702831}
   - component: {fileID: 833702830}
   - component: {fileID: 833702835}
@@ -3725,22 +3686,6 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
---- !u!114 &833702832
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 833702828}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c9360c8a562e510418741d0e9fe3fb1b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  breatheScale: 1.05
-  breatheDuration: 0.8
-  glowImage: {fileID: 1647952061}
-  glowMaxAlpha: 0.6
 --- !u!222 &833702833
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -3896,7 +3841,6 @@ GameObject:
   m_Component:
   - component: {fileID: 844359780}
   - component: {fileID: 844359784}
-  - component: {fileID: 844359785}
   - component: {fileID: 844359783}
   - component: {fileID: 844359786}
   - component: {fileID: 844359787}
@@ -3967,22 +3911,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 844359779}
   m_CullTransparentMesh: 1
---- !u!114 &844359785
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 844359779}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c9360c8a562e510418741d0e9fe3fb1b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  breatheScale: 1.05
-  breatheDuration: 0.8
-  glowImage: {fileID: 1726177880}
-  glowMaxAlpha: 0.6
 --- !u!114 &844359786
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3998,7 +3926,6 @@ MonoBehaviour:
   scaleDownTo: 0.92
   duration: 0.1
   playClickSound: 1
-  triggerVibration: 1
 --- !u!114 &844359787
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4322,7 +4249,6 @@ MonoBehaviour:
   scaleDownTo: 0.92
   duration: 0.1
   playClickSound: 1
-  triggerVibration: 1
 --- !u!114 &1018395892
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7433,10 +7359,6 @@ MonoBehaviour:
   PlayButtonText: {fileID: 2117506651}
   currentSpeed: 90
   radius: 1.18
-  highlightBox: {fileID: 0}
-  levelsText: {fileID: 0}
-  classicText: {fileID: 0}
-  levelsPos: {fileID: 0}
   mainCamera: {fileID: 1941093542}
   levelsBG: {r: 0.007843138, g: 0.43137255, b: 0.5058824, a: 1}
   isSkinsOpen: 0
@@ -7448,7 +7370,7 @@ MonoBehaviour:
   challengesButtonFill: {fileID: 1820481420}
   freeGiftButtonFill: {fileID: 1417174328}
   freeGiftStatusText: {fileID: 216659544}
-  activeFillColor: {r: 0, g: 1, b: 0.004906893, a: 1}
+  activeFillColor: {r: 1, g: 0.6, b: 0.2, a: 1}
   passiveFillColor: {r: 1, g: 0.6, b: 0.2, a: 1}
 --- !u!82 &1607543969
 AudioSource:
@@ -7754,7 +7676,6 @@ MonoBehaviour:
   scaleDownTo: 0.92
   duration: 0.1
   playClickSound: 1
-  triggerVibration: 1
 --- !u!114 &1655542695
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9381,6 +9302,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 6883cabb8f7be32459ffddd3bc0ff1b0, type: 2}
   - {fileID: 11400000, guid: c91b09e851650f446b7f04e26c7210aa, type: 2}
   - {fileID: 11400000, guid: 9244e12d036d616409a6157fbb8872c8, type: 2}
+  - {fileID: 11400000, guid: 14b92bc3113921e4a9edfdf3648d9d51, type: 2}
   targetObject: {fileID: 1445904419}
   jumpHeight: 0.8
 --- !u!114 &1847426322
@@ -9414,15 +9336,16 @@ MonoBehaviour:
   buttonGlow: {fileID: 0}
   rewardText: {fileID: 0}
   rewardColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
-  starPrefab: {fileID: 0}
-  starParent: {fileID: 0}
-  starStart: {fileID: 0}
-  starEnd: {fileID: 0}
+  starPrefab: {fileID: 5850885679385885039, guid: 1baa164e620d71648b421cf0f7b944a8, type: 3}
+  starParent: {fileID: 1576233088}
+  starStart: {fileID: 1655542693}
+  starEnd: {fileID: 1576233088}
   moveDuration: 0.8
   moveEase: 26
   starAmount: 10
   totalDelay: 0.4
   giftCooldownHours: 2
+  starPoolSize: 24
 --- !u!1 &1859629776
 GameObject:
   m_ObjectHideFlags: 0

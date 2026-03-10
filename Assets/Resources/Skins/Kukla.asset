@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e1e266c9a9d025b4795517277d23fbfb, type: 3}
-  m_Name: Default
+  m_Name: Kukla
   m_EditorClassIdentifier: 
   skinID: kukla
   sprite: {fileID: 6788782127362017893, guid: e98399181d3cb6f4992555b508bad223, type: 3}

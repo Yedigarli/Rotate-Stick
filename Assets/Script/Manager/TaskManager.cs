@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
@@ -36,6 +37,9 @@ public class TaskManager : MonoBehaviour
     [Header("Cooldown Settings")]
     public float giftCooldownHours = 2f;
 
+    [Header("Star Pool")]
+    public int starPoolSize = 24;
+
     private int starsReachedTarget;
     private bool isReadyStateActive;
     private DateTime? nextGiftTimeUtc;
@@ -43,6 +47,7 @@ public class TaskManager : MonoBehaviour
     private Transform giftButtonTransform;
     private Transform rewardTextTransform;
     private string lastTimerLabel;
+    private readonly Queue<GameObject> starPool = new Queue<GameObject>();
 
     private const string LastGiftTicksKey = "FreeGiftTicksUtc";
     private static readonly Color DisabledGlowColor = new Color(0.3f, 0.3f, 0.3f, 0.5f);
@@ -59,6 +64,8 @@ public class TaskManager : MonoBehaviour
         nextTimerRefresh = Time.unscaledTime;
         giftButtonTransform = getGiftButton != null ? getGiftButton.transform : null;
         rewardTextTransform = rewardText != null ? rewardText.transform : null;
+
+        WarmStarPool();
     }
 
     private static DateTime UtcNow() => DateTime.UtcNow;
@@ -217,9 +224,14 @@ public class TaskManager : MonoBehaviour
         if (starPrefab == null || actualStart == null || starEnd == null)
             return;
 
-        GameObject star = Instantiate(starPrefab, starParent);
+        GameObject star = GetStarFromPool();
+        if (star == null)
+            return;
+
+        star.transform.SetParent(starParent, false);
         star.transform.position = actualStart.position;
         star.transform.localScale = Vector3.zero;
+        star.SetActive(true);
 
         Sequence s = DOTween.Sequence().SetUpdate(true);
         s.Append(star.transform.DOScale(Vector3.one, 0.25f).SetEase(Ease.OutBack));
@@ -248,7 +260,7 @@ public class TaskManager : MonoBehaviour
             if (starsReachedTarget >= totalStars)
                 FinalizeRewardDisplay();
 
-            Destroy(star);
+            ReturnStarToPool(star);
         });
     }
 
@@ -357,5 +369,45 @@ public class TaskManager : MonoBehaviour
             rewardTextTransform.DOKill();
 
         isReadyStateActive = false;
+    }
+
+    private void WarmStarPool()
+    {
+        if (starPrefab == null || starParent == null || starPoolSize <= 0)
+            return;
+
+        int target = Mathf.Max(1, starPoolSize);
+        while (starPool.Count < target)
+        {
+            GameObject star = Instantiate(starPrefab, starParent);
+            star.SetActive(false);
+            starPool.Enqueue(star);
+        }
+    }
+
+    private GameObject GetStarFromPool()
+    {
+        if (starPrefab == null)
+            return null;
+
+        if (starPool.Count > 0)
+            return starPool.Dequeue();
+
+        GameObject star = Instantiate(starPrefab, starParent);
+        star.SetActive(false);
+        return star;
+    }
+
+    private void ReturnStarToPool(GameObject star)
+    {
+        if (star == null)
+            return;
+
+        star.transform.DOKill();
+        star.SetActive(false);
+        if (starParent != null)
+            star.transform.SetParent(starParent, false);
+
+        starPool.Enqueue(star);
     }
 }
