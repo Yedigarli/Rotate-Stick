@@ -26,7 +26,6 @@ public class GameManager : MonoBehaviour
     public string normalBallTag = "Ball";
     public string starBallTag = "StarBall";
     public string ballParticleTag = "BallParticle";
-    public string floatingTextTag = "FloatingText";
 
     [Header("Objects References")]
     public GameObject target;
@@ -47,9 +46,7 @@ public class GameManager : MonoBehaviour
     public GameObject secondChancePanel;
     public TMP_Text levelProgressPercentText;
     public CanvasGroup canvasGroup;
-    public Button resStartBTN,
-        menuBTN
-        ;
+    public Button resStartBTN, menuBTN, skinsButton, useStarBtn, noThanksBtn;
 
     [Header("Colors (HDR)")]
     [ColorUsage(true, true)]
@@ -206,14 +203,12 @@ public class GameManager : MonoBehaviour
 
         HitStop();
         UISoundManager.Instance?.PlayHandleSFX(comboCount);
-        CreateFloatingText(pos, GetComboText(), ballGlowColor);
         PlayBallEffect(pos, ballGlowColor);
     }
 
     private void ApplyNormalHitEffects(Vector3 pos)
     {
         UISoundManager.Instance?.PlayHandleSFX(0);
-        CreateFloatingText(pos, "+1", Color.white);
         PlayBallEffect(pos, Color.white);
     }
 
@@ -232,54 +227,7 @@ public class GameManager : MonoBehaviour
             .SetUpdate(true);
     }
 
-    private void CreateFloatingText(Vector3 pos, string text, Color color)
-    {
-        if (!enableFloatingText)
-            return;
-        GameObject fText = ObjectPooler.Instance.SpawnFromPool(
-            floatingTextTag,
-            pos,
-            Quaternion.identity
-        );
-        if (fText == null)
-            return;
 
-        if (mainCanvas == null)
-            mainCanvas = FindFirstObjectByType<Canvas>();
-        if (mainCanvas != null)
-        {
-            RectTransform canvasRect = mainCanvas.transform as RectTransform;
-            RectTransform textRect = fText.transform as RectTransform;
-            if (canvasRect != null && textRect != null)
-            {
-                fText.transform.SetParent(mainCanvas.transform, false);
-                Camera cam = Camera.main;
-                Vector2 screenPoint = RectTransformUtility.WorldToScreenPoint(cam, pos);
-                RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                    canvasRect,
-                    screenPoint,
-                    mainCanvas.renderMode == RenderMode.ScreenSpaceOverlay
-                        ? null
-                        : mainCanvas.worldCamera,
-                    out Vector2 localPoint
-                );
-                textRect.anchoredPosition = localPoint;
-            }
-            else
-            {
-                fText.transform.SetParent(mainCanvas.transform, false);
-                Camera cam = Camera.main;
-                if (cam != null)
-                    fText.transform.position = cam.WorldToScreenPoint(pos);
-            }
-        }
-
-        if (fText.TryGetComponent<TMP_Text>(out var tmp))
-        {
-            tmp.SetText(text);
-            tmp.color = color;
-        }
-    }
 
     public void PlayBallEffect(Vector3 pos, Color ballColor)
     {
@@ -432,7 +380,7 @@ public class GameManager : MonoBehaviour
         StartCoroutine(FreezeTimeDelayed());
     }
 
-        private void AnimateButtonsSequentially()
+    private void AnimateButtonsSequentially()
     {
         Button[] buttons = { resStartBTN, menuBTN };
         RectTransform[] rects = new RectTransform[buttons.Length];
@@ -448,7 +396,9 @@ public class GameManager : MonoBehaviour
                 finalPositions[i] = rects[i].anchoredPosition;
         }
 
-        if (rects[0] != null && rects[1] != null && Mathf.Abs(finalPositions[0].x - finalPositions[1].x) < 20f)
+        if (rects[0] != null
+            && rects[1] != null
+            && Mathf.Abs(finalPositions[0].x - finalPositions[1].x) < 20f)
         {
             float y = finalPositions[0].y;
             finalPositions[0] = new Vector2(-170f, y);
@@ -461,7 +411,8 @@ public class GameManager : MonoBehaviour
                 continue;
 
             RectTransform rt = rects[i];
-            CanvasGroup cg = buttons[i].GetComponent<CanvasGroup>() ?? buttons[i].gameObject.AddComponent<CanvasGroup>();
+            CanvasGroup cg = buttons[i].GetComponent<CanvasGroup>()
+                ?? buttons[i].gameObject.AddComponent<CanvasGroup>();
 
             rt.DOKill();
             cg.DOKill();
@@ -543,10 +494,6 @@ public class GameManager : MonoBehaviour
         return "PERFECT!";
     }
 }
-
-
-
-
 
 
 

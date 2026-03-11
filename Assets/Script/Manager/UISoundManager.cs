@@ -16,6 +16,7 @@ public class UISoundManager : MonoBehaviour
     public AudioClip handleSFX;
     public AudioClip upstarSFX;
     public AudioClip levelUpSFX;
+    public AudioClip bestScoreSFX;
 
     [Header("Pitch Settings")]
     public float maxMusicPitch = 1.15f;
@@ -77,6 +78,13 @@ public class UISoundManager : MonoBehaviour
         sfxSource.PlayOneShot(levelUpSFX);
     }
 
+    public void PlayBestScoreSFX()
+    {
+        if (!isSoundOn || sfxSource == null || bestScoreSFX == null)
+            return;
+
+        sfxSource.PlayOneShot(bestScoreSFX);
+    }
     public void PlayStarSFX()
     {
         if (!isSoundOn || sfxSource == null || upstarSFX == null)
@@ -171,3 +179,5 @@ public class UISoundManager : MonoBehaviour
         PlayerPrefs.Save();
     }
 }
+
+

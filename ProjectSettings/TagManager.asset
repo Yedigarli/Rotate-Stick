@@ -10,6 +10,7 @@ TagManager:
   - FloatingText
   - BallParticle
   - StarBall
+  - BestScore
   layers:
   - Default
   - TransparentFX

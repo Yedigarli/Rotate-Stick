@@ -11,14 +11,10 @@ public class MainMenuManager : MonoBehaviour
 
     [Header("UI & Appearance")]
     public TMP_Text levelText;
-    public TMP_Text nextLevelText;
     public TMP_Text percentageText;
-    public TMP_Text bestScoreText;
+    public TMP_Text combinedLevelBestText;
 
     [Header("Level Bar")]
-    public GameObject levelBarContainer;
-    public Image levelCircle;
-    public Image nextLevelCircle;
     public Image progressBarFill;
     public Color[] levelColors;
 
@@ -33,7 +29,6 @@ public class MainMenuManager : MonoBehaviour
     public float currentSpeed = 50f;
     public float radius = 1.2f;
     private Vector3 speedDirection = Vector3.forward;
-
 
     [Header("Background")]
     public Camera mainCamera;
@@ -55,6 +50,8 @@ public class MainMenuManager : MonoBehaviour
     public Color passiveFillColor = new Color32(255, 153, 51, 90);
 
     private static readonly string PlayStr = "PLAY";
+    private const string MenuHeaderFormat = "LEVEL: {0} | BEST: {1}";
+
     private static readonly string BestScoreKey = "BestScore";
 
     private float nextActionFillRefresh;
@@ -72,6 +69,9 @@ public class MainMenuManager : MonoBehaviour
             PLayButton.onClick.AddListener(OnPlayButtonClick);
         if (freeGiftButton != null)
             freeGiftButton.onClick.AddListener(OnFreeGiftClick);
+
+        if (combinedLevelBestText == null)
+            combinedLevelBestText = levelText;
     }
 
     private void Start()
@@ -94,7 +94,10 @@ public class MainMenuManager : MonoBehaviour
         if (isSkinsOpen || target == null)
             return;
 
-        transform.RotateAround(target.transform.position, speedDirection, currentSpeed * Time.deltaTime);
+        transform.RotateAround(
+            target.transform.position,
+            speedDirection,
+            currentSpeed * Time.deltaTime);
     }
 
     private void InitializeUI()
@@ -106,32 +109,25 @@ public class MainMenuManager : MonoBehaviour
             PLayButton.interactable = true;
         if (PlayButtonText != null)
             PlayButtonText.SetText(PlayStr);
-
-        AnimateScore(bestScoreText, PlayerPrefs.GetInt(BestScoreKey, 0));
     }
-
-    public void ToggleGameMode() { }
+              
 
     public void UpdateLevelUI()
     {
+        int level = PlayerPrefs.GetInt("level", 1);
+        int best = PlayerPrefs.GetInt(BestScoreKey, 0);
+
+        if (combinedLevelBestText != null)
+            combinedLevelBestText.SetText(MenuHeaderFormat, level, best);
+
         if (levelColors == null || levelColors.Length == 0)
             return;
 
-        int level = PlayerPrefs.GetInt("level", 1);
         int currentPoints = PlayerPrefs.GetInt("currentPoints", 0);
         int lastRunPercent = PlayerPrefs.GetInt("LastRunPercent", -1);
         int pointsToNextLevel = 10 + (level * 2);
 
         int currentIndex = (level - 1) % levelColors.Length;
-        int nextIndex = level % levelColors.Length;
-
-        levelText?.SetText("{0}", level);
-        nextLevelText?.SetText("{0}", level + 1);
-
-        if (levelCircle != null)
-            levelCircle.color = levelColors[currentIndex];
-        if (nextLevelCircle != null)
-            nextLevelCircle.color = levelColors[nextIndex];
 
         float progressRatio = Mathf.Clamp01((float)currentPoints / pointsToNextLevel);
         float percentage = progressRatio * 100f;
@@ -178,18 +174,24 @@ public class MainMenuManager : MonoBehaviour
         if (spawnedBall.TryGetComponent<SpriteRenderer>(out SpriteRenderer sr))
         {
             int level = PlayerPrefs.GetInt("level", 1);
-            ballGlowColor = levelColors[(level - 1) % levelColors.Length];
+            ballGlowColor = (levelColors != null && levelColors.Length > 0) ? levelColors[(level - 1) % levelColors.Length] : ballGlowColor;
             sr.color = ballGlowColor;
         }
     }
 
     private void UpdateMenuActionIndicators(bool immediate)
     {
-        float skinFill = SkinsManager.Instance != null ? SkinsManager.Instance.GetUnlockedSkinsFill01() : 0f;
-        float challengeFill = MissionManager.Instance != null ? MissionManager.Instance.GetMissionFill01() : 0f;
+        float skinFill = SkinsManager.Instance != null
+            ? SkinsManager.Instance.GetUnlockedSkinsFill01()
+            : 0f;
+        float challengeFill = MissionManager.Instance != null
+            ? MissionManager.Instance.GetMissionFill01()
+            : 0f;
 
         bool giftReady = TaskManager.Instance != null && TaskManager.Instance.IsGiftReadyForClaim();
-        float giftFill = TaskManager.Instance != null ? TaskManager.Instance.GetGiftCooldownFill01() : 0f;
+        float giftFill = TaskManager.Instance != null
+            ? TaskManager.Instance.GetGiftCooldownFill01()
+            : 0f;
 
         if (immediate || Mathf.Abs(prevSkinFill - skinFill) > 0.001f)
             UpdateFillImage(skinsButtonFill, skinFill, false);
@@ -205,7 +207,9 @@ public class MainMenuManager : MonoBehaviour
             freeGiftStatusText.SetText(
                 giftReady
                     ? "FREE GIFT"
-                    : (TaskManager.Instance != null ? TaskManager.Instance.GetGiftRemainingText() : "00:00:00")
+                    : (TaskManager.Instance != null
+                        ? TaskManager.Instance.GetGiftRemainingText()
+                        : "00:00:00")
             );
         }
 
@@ -249,11 +253,7 @@ public class MainMenuManager : MonoBehaviour
             playerSr.color = playerGlowColor;
     }
 
-    private static void AnimateScore(TMP_Text textElement, int targetValue)
-    {
-        if (textElement != null)
-            textElement.SetText("{0}", targetValue);
-    }
+
 
     private void OnDisable()
     {
@@ -275,3 +275,15 @@ public class MainMenuManager : MonoBehaviour
             SceneManager.LoadScene("Game");
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+

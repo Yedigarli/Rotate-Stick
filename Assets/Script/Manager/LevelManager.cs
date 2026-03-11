@@ -13,6 +13,22 @@ public class LevelManager : MonoBehaviour
     public TMP_Text nextLevelText;
     public TMP_Text scoreText;
     public TMP_Text statusText;
+    public TMP_Text milestoneText;
+
+    [Header("Milestone Text")]
+    public Vector2 milestoneTextOffset = new Vector2(0f, -120f);
+    public Vector2 levelUpTextOffset = Vector2.zero;
+    public Vector2 bestScoreTextOffset = new Vector2(0f, -20f);
+    [ColorUsage(true, true)]
+    public Color levelUpTextColor = new Color(0.3f, 2.2f, 0.3f);
+    [ColorUsage(true, true)]
+    public Color bestScoreTextColor = new Color(2.2f, 1.1f, 0.2f);
+    public float levelUpTextDuration = 1.3f;
+    public float bestScoreTextDuration = 1.6f;
+    public float levelUpTextScale = 1.15f;
+    public float bestScoreTextScale = 1.28f;
+    public float levelUpTextSize = 62f;
+    public float bestScoreTextSize = 70f;
 
     [Header("Status Colors (HDR)")]
     [ColorUsage(true, true)]
@@ -31,7 +47,12 @@ public class LevelManager : MonoBehaviour
     private int level;
 
     [Header("Level Up Effects")]
-    public GameObject levelUpParticlePrefab;
+    public GameObject levelUpParticlePrefab;    [Header("Milestone Feedback")]
+    public float milestoneStatusDuration = 1.4f;
+    public float milestoneStatusScale = 1.15f;
+    public float milestoneCameraPunch = 0.12f;
+    public float milestoneCameraPunchDuration = 0.28f;
+    public float milestonePlayerFxYOffset = 0.2f;
 
     [Header("Randomized Words")]
     private readonly string[] perfectWords = { "PERFECT!", "AMAZING!", "FANTASTIC!", "BULLSEYE!", "EXCELLENT!" };
@@ -53,6 +74,8 @@ public class LevelManager : MonoBehaviour
     private TaskManager taskManager;
     private Camera cachedCamera;
     private Tween statusHideTween;
+    private float baseMilestoneFontSize = -1f;
+
 
     private static readonly string LevelKey = "level";
     private static readonly string PointsKey = "currentPoints";
@@ -70,6 +93,20 @@ public class LevelManager : MonoBehaviour
 
         if (statusText != null)
             statusText.gameObject.SetActive(false);
+
+        if (nextLevelText != null)
+            nextLevelText.gameObject.SetActive(false);
+        if (nextLevelCircle != null)
+            nextLevelCircle.gameObject.SetActive(false);
+        if (currentLevelCircle != null)
+            currentLevelCircle.gameObject.SetActive(false);
+        if (progressBarFill != null)
+            progressBarFill.gameObject.SetActive(false);
+        if (milestoneText != null)
+        {
+            milestoneText.gameObject.SetActive(false);
+            baseMilestoneFontSize = milestoneText.fontSize;
+        }
 
         if (scoreText != null)
             scoreText.SetText("{0}", totalScore);
@@ -104,8 +141,6 @@ public class LevelManager : MonoBehaviour
 
         if (currentLevelCircle != null)
             currentLevelCircle.color = currentLevelThemeColor;
-        if (nextLevelCircle != null)
-            nextLevelCircle.color = nextLevelThemeColor;
         if (progressBarFill != null)
             progressBarFill.color = currentLevelThemeColor;
 
@@ -148,8 +183,8 @@ public class LevelManager : MonoBehaviour
             {
                 isBestScoreReachedThisSession = true;
                 taskManager?.StartStarAnimation_NoTimer(bestScoreStarReward, bestScoreStarReward);
-                SpawnLevelUpEffect();
-                ShowStatus("NEW BEST!", perfectColor);
+                UISoundManager.Instance?.PlayBestScoreSFX();
+                PlayMilestoneFeedback("NEW BEST!", perfectColor, true);
             }
 
             PlayerPrefs.SetInt(BestScoreKey, totalScore);
@@ -181,8 +216,7 @@ public class LevelManager : MonoBehaviour
 
         UpdateLevelTexts();
         UpdateThemeColor();
-        SpawnLevelUpEffect();
-        ShowStatus("LEVEL UP!", levelUpColor);
+        PlayMilestoneFeedback("LEVEL UP!", levelUpColor, false);
 
         if (progressBarFill != null)
             progressBarFill
@@ -219,6 +253,11 @@ public class LevelManager : MonoBehaviour
 
     public void ShowStatus(string message, Color col)
     {
+        ShowStatus(message, col, 0.87f, 1f);
+    }
+
+    public void ShowStatus(string message, Color col, float duration, float scale)
+    {
         if (statusText == null)
             return;
 
@@ -230,12 +269,12 @@ public class LevelManager : MonoBehaviour
         rect.DOKill();
         rect.localScale = Vector3.zero;
 
-        rect.DOScale(Vector3.one, 0.22f)
+        rect.DOScale(Vector3.one * scale, 0.22f)
             .SetEase(Ease.OutBack)
             .SetUpdate(true);
 
         statusHideTween?.Kill();
-        statusHideTween = DOVirtual.DelayedCall(0.87f, HideStatusText)
+        statusHideTween = DOVirtual.DelayedCall(duration, HideStatusText)
             .SetUpdate(true)
             .SetLink(statusText.gameObject, LinkBehaviour.KillOnDestroy);
     }
@@ -250,11 +289,9 @@ public class LevelManager : MonoBehaviour
     {
         if (currentLevelText != null)
         {
-            currentLevelText.SetText("{0}", level);
+            currentLevelText.SetText("LEVEL: {0}", level);
             AnimateTextPulse(currentLevelText.rectTransform);
         }
-
-        nextLevelText?.SetText("{0}", level + 1);
     }
 
     private void AnimateTextPulse(RectTransform rt)
@@ -275,6 +312,117 @@ public class LevelManager : MonoBehaviour
         return Mathf.Clamp(Mathf.RoundToInt(percentage), 0, 100).ToString();
     }
 
+    private void PlayMilestoneFeedback(string message, Color color, bool isBestScore)
+    {
+        ShowStatus(message, color, milestoneStatusDuration, milestoneStatusScale);
+        ShowMilestoneText(message, isBestScore);
+        SpawnLevelUpEffect();
+        SpawnPlayerMilestoneEffect(color, isBestScore);
+        PulseCamera(isBestScore);
+        PulsePlayer(color);
+    }
+
+    private void ShowMilestoneText(string message, bool isBestScore)
+    {
+        if (milestoneText == null)
+            return;
+
+        if (baseMilestoneFontSize <= 0f)
+            baseMilestoneFontSize = milestoneText.fontSize;
+
+        float size = isBestScore ? bestScoreTextSize : levelUpTextSize;
+        if (size <= 0f)
+            size = baseMilestoneFontSize;
+
+        milestoneText.fontSize = size;
+        milestoneText.SetText(message);
+        milestoneText.color = isBestScore ? bestScoreTextColor : levelUpTextColor;
+        milestoneText.gameObject.SetActive(true);
+
+        Vector2 baseOffset = milestoneTextOffset;
+        Vector2 typeOffset = isBestScore ? bestScoreTextOffset : levelUpTextOffset;
+        Vector2 startPos = baseOffset + typeOffset;
+        Vector2 endPos = startPos + new Vector2(0f, isBestScore ? 34f : 26f);
+
+        RectTransform rect = milestoneText.rectTransform;
+        rect.DOKill();
+        rect.localRotation = Quaternion.identity;
+        rect.localScale = Vector3.one * 0.55f;
+        rect.anchoredPosition = startPos;
+
+        float scale = isBestScore ? bestScoreTextScale : levelUpTextScale;
+        float duration = isBestScore ? bestScoreTextDuration : levelUpTextDuration;
+
+        Sequence seq = DOTween.Sequence();
+        seq.Append(rect.DOScale(Vector3.one * scale, 0.18f).SetEase(Ease.OutBack));
+        seq.Join(rect.DOAnchorPos(endPos, 0.28f).SetEase(Ease.OutCubic));
+
+        if (isBestScore)
+            seq.Append(rect.DOPunchRotation(new Vector3(0f, 0f, 8f), 0.32f, 10, 0.7f));
+        else
+            seq.Append(rect.DOPunchScale(Vector3.one * 0.08f, 0.28f, 8, 0.6f));
+
+        seq.AppendInterval(duration);
+        seq.Append(rect.DOScale(Vector3.one * 0.7f, 0.18f).SetEase(Ease.InBack));
+        seq.OnComplete(() =>
+        {
+            if (milestoneText != null)
+                milestoneText.gameObject.SetActive(false);
+        });
+        seq.SetUpdate(true);
+        seq.SetLink(milestoneText.gameObject, LinkBehaviour.KillOnDestroy);
+    }
+    private void PulseCamera(bool isBestScore)
+    {
+        if (cachedCamera == null)
+            cachedCamera = Camera.main;
+        if (cachedCamera == null)
+            return;
+
+        float punch = milestoneCameraPunch * (isBestScore ? 1.25f : 1f);
+        cachedCamera.transform.DOKill();
+        cachedCamera.transform.DOPunchPosition(
+            new Vector3(punch, punch, 0f),
+            milestoneCameraPunchDuration,
+            10,
+            0.6f
+        ).SetUpdate(true);
+    }
+
+    private void PulsePlayer(Color color)
+    {
+        GameObject playerObj = GameManager.Instance != null ? GameManager.Instance.player : null;
+        if (playerObj == null)
+            return;
+        if (!playerObj.TryGetComponent<SpriteRenderer>(out var sr))
+            return;
+
+        sr.DOKill();
+        sr.DOColor(color, 0.12f)
+            .SetLoops(2, LoopType.Yoyo)
+            .SetUpdate(true);
+    }
+
+    private void SpawnPlayerMilestoneEffect(Color color, bool isBestScore)
+    {
+        if (levelUpParticlePrefab == null)
+            return;
+
+        GameObject playerObj = GameManager.Instance != null ? GameManager.Instance.player : null;
+        if (playerObj == null)
+            return;
+
+        Vector3 pos = playerObj.transform.position + new Vector3(0f, milestonePlayerFxYOffset, 0f);
+        float tilt = isBestScore ? -25f : -35f;
+        GameObject fx = Instantiate(levelUpParticlePrefab, pos, Quaternion.Euler(tilt, 0f, 0f));
+        if (fx.TryGetComponent<ParticleSystem>(out var ps))
+        {
+            var main = ps.main;
+            main.startColor = color;
+        }
+
+        Destroy(fx, 3f);
+    }
     public void SpawnLevelUpEffect()
     {
         if (levelUpParticlePrefab == null)
@@ -304,4 +452,28 @@ public class LevelManager : MonoBehaviour
         return Mathf.Clamp(progress, 0f, 100f);
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
