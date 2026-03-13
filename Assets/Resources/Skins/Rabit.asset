@@ -13,10 +13,10 @@ MonoBehaviour:
   m_Name: Rabit
   m_EditorClassIdentifier: 
   skinID: Rabbit
-  sprite: {fileID: 1028064406640460089, guid: 3f1fa01238393d9458902eb22aadba72, type: 3}
+  sprite: {fileID: 21300000, guid: 3f1fa01238393d9458902eb22aadba72, type: 3}
   menuScale: {x: 1, y: 1, z: 1}
   menuYOffset: 0.74
   gameScale: {x: 1, y: 1, z: 1}
   gameYOffset: 0.727
-  price: 100
+  price: 0
   unlockedByDefault: 0

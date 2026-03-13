@@ -13,10 +13,10 @@ MonoBehaviour:
   m_Name: Bear2
   m_EditorClassIdentifier: 
   skinID: Bear2
-  sprite: {fileID: 5674382746468428814, guid: fc287092f6d91bb47bb8079019589ff5, type: 3}
+  sprite: {fileID: 21300000, guid: fc287092f6d91bb47bb8079019589ff5, type: 3}
   menuScale: {x: 1, y: 1, z: 1}
   menuYOffset: 0
   gameScale: {x: 1, y: 1, z: 1}
   gameYOffset: -0.011
-  price: 100
+  price: 0
   unlockedByDefault: 0

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Bear
   m_EditorClassIdentifier: 
   skinID: Bear
-  sprite: {fileID: 133982719826790466, guid: 3503652dffb96844aae32c03fcc5cbdc, type: 3}
+  sprite: {fileID: 21300000, guid: 3503652dffb96844aae32c03fcc5cbdc, type: 3}
   menuScale: {x: 1, y: 1, z: 1}
   menuYOffset: 0.2870001
   gameScale: {x: 1, y: 1, z: 1}

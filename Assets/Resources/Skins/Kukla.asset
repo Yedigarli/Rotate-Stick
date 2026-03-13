@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Kukla
   m_EditorClassIdentifier: 
   skinID: kukla
-  sprite: {fileID: 6788782127362017893, guid: e98399181d3cb6f4992555b508bad223, type: 3}
+  sprite: {fileID: 21300000, guid: e98399181d3cb6f4992555b508bad223, type: 3}
   menuScale: {x: 1, y: 1, z: 1}
   menuYOffset: 0.31
   gameScale: {x: 1, y: 1, z: 1}

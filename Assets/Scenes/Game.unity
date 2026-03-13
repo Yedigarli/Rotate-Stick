@@ -216,6 +216,8 @@ RectTransform:
   - {fileID: 896639604}
   - {fileID: 1187503306}
   - {fileID: 494696028}
+  - {fileID: 648373395}
+  - {fileID: 341985778}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -254,7 +256,7 @@ RectTransform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 685336000}
+  m_Father: {fileID: 133248564}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 1}
   m_AnchorMax: {x: 0.5, y: 1}
@@ -1130,7 +1132,7 @@ RectTransform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 685336000}
+  m_Father: {fileID: 133248564}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 1}
   m_AnchorMax: {x: 0.5, y: 1}
@@ -1348,8 +1350,6 @@ RectTransform:
   m_Children:
   - {fileID: 1538052517}
   - {fileID: 1052082597}
-  - {fileID: 648373395}
-  - {fileID: 341985778}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -1548,7 +1548,6 @@ MonoBehaviour:
   normalBallTag: Ball
   starBallTag: StarBall
   ballParticleTag: BallParticle
-  floatingTextTag: FloatingText
   target: {fileID: 1046169873}
   player: {fileID: 888135724}
   radius: 1.465
@@ -1560,6 +1559,9 @@ MonoBehaviour:
   canvasGroup: {fileID: 1984647977}
   resStartBTN: {fileID: 1205305553}
   menuBTN: {fileID: 976869011}
+  skinsButton: {fileID: 0}
+  useStarBtn: {fileID: 0}
+  noThanksBtn: {fileID: 0}
   ballGlowColor: {r: 0.4735576, g: 2.1185472, b: 0.16616057, a: 1}
   baseBallColor: {r: 0.29494882, g: 1.319508, b: 0.10349082, a: 1}
   playerGlowColor: {r: 0, g: 0.67058825, b: 0.7411765, a: 1}
@@ -3014,7 +3016,7 @@ SpriteRenderer:
   m_Size: {x: 4.1, y: 4.09}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!114 &1921021555
 MonoBehaviour:

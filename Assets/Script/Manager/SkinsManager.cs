@@ -1,6 +1,7 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using DG.Tweening;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -19,6 +20,20 @@ public class SkinsManager : MonoBehaviour
     public SkinData[] skins;
     private SkinApplier cachedSceneApplier;
 
+    [Header("Scroll UI")]
+    public ScrollRect skinsScrollRect;
+    public SkinsScrollAnimator scrollAnimator;
+    public bool enableScrollEffects = true;
+
+    [Header("Skin Menu UI")]
+    public Image selectedSkinImage;
+    public GameObject selectedSkinGlow;
+    public TMP_Text unlockedCountText;
+    public TMP_Text starCountText;
+    public Button randomUnlockButton;
+    public TMP_Text randomPriceText;
+    public int randomUnlockPrice = 250;
+
     [Header("Target Animation")]
     public GameObject targetObject;
     public float jumpHeight = 3.5f;
@@ -35,8 +50,23 @@ public class SkinsManager : MonoBehaviour
         if (skinsPanel != null)
             skinsPanel.SetActive(false);
 
+        if (skinsScrollRect == null && skinsPanel != null)
+            skinsScrollRect = skinsPanel.GetComponentInChildren<ScrollRect>(true);
+        if (skinsScrollRect != null)
+        {
+            if (scrollAnimator == null)
+                scrollAnimator =
+                    skinsScrollRect.GetComponent<SkinsScrollAnimator>()
+                    ?? skinsScrollRect.gameObject.AddComponent<SkinsScrollAnimator>();
+            if (enableScrollEffects)
+                scrollAnimator.Setup(skinsScrollRect);
+            else
+                scrollAnimator.scrollRect = skinsScrollRect;
+        }
+
         skinsbutton?.onClick.AddListener(OpenSkins);
         closeSkinsButton?.onClick.AddListener(CloseSkins);
+        randomUnlockButton?.onClick.AddListener(UnlockRandomSkin);
     }
 
     public void RegisterButton(SkinButton btn)
@@ -75,11 +105,18 @@ public class SkinsManager : MonoBehaviour
 
         if (cachedSceneApplier == null)
             cachedSceneApplier = FindFirstObjectByType<SkinApplier>();
+
         if (cachedSceneApplier != null)
             cachedSceneApplier.ApplySkin(skin);
 
+        // Buttonların vizualını (rəng, kilid və s.) yeniləyir
         for (int i = 0; i < allButtons.Count; i++)
             allButtons[i].UpdateUI();
+
+        // --- ƏLAVƏ EDİLƏN HİSSƏ ---
+        UpdateSkinMenuUI(); // Ulduz sayını və Unlocked sayını anlıq yeniləyir
+        UpdateSelectedPreview(); // Yuxarıdakı böyük şəkli yeniləyir
+        // --------------------------
     }
 
     public void OpenSkins()
@@ -109,6 +146,16 @@ public class SkinsManager : MonoBehaviour
 
         for (int i = 0; i < allButtons.Count; i++)
             allButtons[i].UpdateUI();
+
+        UpdateSelectedPreview();
+        UpdateSkinMenuUI();
+
+        if (skinsScrollRect != null)
+        {
+            skinsScrollRect.verticalNormalizedPosition = 1f;
+            if (scrollAnimator != null)
+                scrollAnimator.Refresh();
+        }
 
         StopAllCoroutines();
         StartCoroutine(Animate(true));
@@ -146,7 +193,8 @@ public class SkinsManager : MonoBehaviour
         Vector3 startS = open ? Vector3.one * 0.86f : Vector3.one;
         Vector3 endS = open ? Vector3.one : Vector3.one * 0.86f;
 
-        Vector3 currentTargetPos = targetObject != null ? targetObject.transform.position : Vector3.zero;
+        Vector3 currentTargetPos =
+            targetObject != null ? targetObject.transform.position : Vector3.zero;
         Vector3 targetEndPos = open ? originalPosition + Vector3.up * jumpHeight : originalPosition;
 
         while (t < animDuration)
@@ -159,7 +207,11 @@ public class SkinsManager : MonoBehaviour
             skinsPanel.transform.localScale = Vector3.Lerp(startS, endS, p);
 
             if (targetObject != null)
-                targetObject.transform.position = Vector3.Lerp(currentTargetPos, targetEndPos, curve);
+                targetObject.transform.position = Vector3.Lerp(
+                    currentTargetPos,
+                    targetEndPos,
+                    curve
+                );
 
             yield return null;
         }
@@ -179,6 +231,7 @@ public class SkinsManager : MonoBehaviour
 
         isAnimating = false;
     }
+
     public int GetUnlockedSkinCount()
     {
         if (skins == null || skins.Length == 0)
@@ -207,6 +260,132 @@ public class SkinsManager : MonoBehaviour
 
         return Mathf.Clamp01((float)GetUnlockedSkinCount() / skins.Length);
     }
+
+    private SkinData GetSelectedSkin()
+    {
+        if (skins == null || skins.Length == 0)
+            return null;
+
+        string selectedID = PlayerPrefs.GetString("SelectedSkin", "");
+        for (int i = 0; i < skins.Length; i++)
+        {
+            SkinData skin = skins[i];
+            if (skin != null && skin.skinID == selectedID)
+                return skin;
+        }
+
+        for (int i = 0; i < skins.Length; i++)
+        {
+            SkinData skin = skins[i];
+            if (skin == null)
+                continue;
+            string skinKey = "Skin_" + skin.skinID;
+            bool unlocked = PlayerPrefs.GetInt(skinKey, skin.unlockedByDefault ? 1 : 0) == 1;
+            if (unlocked)
+                return skin;
+        }
+
+        return skins[0];
+    }
+
+    private void UpdateSelectedPreview()
+    {
+        SkinData skin = GetSelectedSkin();
+        if (skin == null)
+            return;
+
+        if (selectedSkinImage != null)
+            selectedSkinImage.sprite = skin.sprite;
+
+        if (selectedSkinGlow != null)
+        {
+            selectedSkinGlow.SetActive(true);
+            selectedSkinGlow.transform.DOKill();
+            selectedSkinGlow.transform.localScale = Vector3.one;
+            selectedSkinGlow
+                .transform.DOScale(1.08f, 0.8f)
+                .SetEase(Ease.InOutSine)
+                .SetLoops(-1, LoopType.Yoyo)
+                .SetUpdate(true);
+        }
+    }
+
+    private void UpdateSkinMenuUI()
+    {
+        int total = skins != null ? skins.Length : 0;
+        int unlocked = GetUnlockedSkinCount();
+
+        if (unlockedCountText != null)
+            unlockedCountText.SetText("{0}/{1}", unlocked, total);
+
+        int stars =
+            StarManager.Instance != null
+                ? StarManager.Instance.GetStars()
+                : PlayerPrefs.GetInt("Stars", 0);
+        if (starCountText != null)
+            starCountText.SetText("{0}", stars);
+
+        if (randomPriceText != null)
+            randomPriceText.SetText("{0}", randomUnlockPrice);
+
+        bool hasLocked = GetLockedSkinCount() > 0;
+        bool canAfford = stars >= randomUnlockPrice;
+        if (randomUnlockButton != null)
+            randomUnlockButton.interactable = hasLocked && canAfford;
+    }
+
+    public void UnlockRandomSkin()
+    {
+        if (skins == null || skins.Length == 0)
+            return;
+
+        List<SkinData> locked = new List<SkinData>();
+        for (int i = 0; i < skins.Length; i++)
+        {
+            SkinData skin = skins[i];
+            if (skin == null)
+                continue;
+            string skinKey = "Skin_" + skin.skinID;
+            bool isUnlocked = PlayerPrefs.GetInt(skinKey, skin.unlockedByDefault ? 1 : 0) == 1;
+            if (!isUnlocked)
+                locked.Add(skin);
+        }
+
+        if (locked.Count == 0)
+            return;
+        if (StarManager.Instance == null || !StarManager.Instance.SpendStars(randomUnlockPrice))
+            return;
+
+        SkinData chosen = locked[Random.Range(0, locked.Count)];
+        string chosenKey = "Skin_" + chosen.skinID;
+        PlayerPrefs.SetInt(chosenKey, 1);
+        PlayerPrefs.Save();
+
+        CompleteSelection(chosen);
+        UpdateSkinMenuUI();
+    }
+
+    private int GetLockedSkinCount()
+    {
+        if (skins == null || skins.Length == 0)
+            return 0;
+
+        int locked = 0;
+        for (int i = 0; i < skins.Length; i++)
+        {
+            SkinData skin = skins[i];
+            if (skin == null)
+                continue;
+
+            string skinKey = "Skin_" + skin.skinID;
+            bool isUnlocked = PlayerPrefs.GetInt(skinKey, skin.unlockedByDefault ? 1 : 0) == 1;
+            if (!isUnlocked)
+                locked++;
+        }
+
+        return locked;
+    }
+
     private void SetBallsActive(bool state)
     {
         if (MainMenuManager.Instance != null)
@@ -228,4 +407,3 @@ public class SkinsManager : MonoBehaviour
         }
     }
 }
-
