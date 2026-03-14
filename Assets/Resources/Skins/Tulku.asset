@@ -10,13 +10,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e1e266c9a9d025b4795517277d23fbfb, type: 3}
-  m_Name: Bear
+  m_Name: Tulku
   m_EditorClassIdentifier: 
-  skinID: Bear
-  sprite: {fileID: -8381012075192673081, guid: 60235a331bc79224aaae754727151ab8, type: 3}
+  skinID: Tulku
+  sprite: {fileID: 21300000, guid: bfa60e488781891469269727ec27ef0e, type: 3}
   menuScale: {x: 1, y: 1, z: 1}
-  menuYOffset: 0.233
+  menuYOffset: 0.288
   gameScale: {x: 1, y: 1, z: 1}
   gameYOffset: 0.292
   price: 0
-  unlockedByDefault: 1
+  unlockedByDefault: 0

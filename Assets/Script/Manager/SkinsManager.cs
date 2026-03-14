@@ -41,6 +41,7 @@ public class SkinsManager : MonoBehaviour
     private bool hasOriginalPos;
 
     private readonly List<SkinButton> allButtons = new List<SkinButton>();
+    private SkinButton selectedButton;
 
     private void Awake()
     {
@@ -55,9 +56,7 @@ public class SkinsManager : MonoBehaviour
         if (skinsScrollRect != null)
         {
             if (scrollAnimator == null)
-                scrollAnimator =
-                    skinsScrollRect.GetComponent<SkinsScrollAnimator>()
-                    ?? skinsScrollRect.gameObject.AddComponent<SkinsScrollAnimator>();
+                scrollAnimator = skinsScrollRect.GetComponent<SkinsScrollAnimator>() ?? skinsScrollRect.gameObject.AddComponent<SkinsScrollAnimator>();
             if (enableScrollEffects)
                 scrollAnimator.Setup(skinsScrollRect);
             else
@@ -77,6 +76,11 @@ public class SkinsManager : MonoBehaviour
 
     public void SelectSkin(SkinData skin)
     {
+        SelectSkin(skin, null);
+    }
+
+    public void SelectSkin(SkinData skin, SkinButton sourceButton)
+    {
         if (skin == null)
             return;
 
@@ -86,7 +90,7 @@ public class SkinsManager : MonoBehaviour
 
         if (isUnlocked)
         {
-            CompleteSelection(skin);
+            CompleteSelection(skin, sourceButton);
             return;
         }
 
@@ -94,29 +98,81 @@ public class SkinsManager : MonoBehaviour
         {
             PlayerPrefs.SetInt(skinKey, 1);
             PlayerPrefs.Save();
-            CompleteSelection(skin);
+            CompleteSelection(skin, sourceButton);
         }
     }
 
-    private void CompleteSelection(SkinData skin)
+    private void CompleteSelection(SkinData skin, SkinButton sourceButton)
     {
         PlayerPrefs.SetString("SelectedSkin", skin.skinID);
         PlayerPrefs.Save();
 
         if (cachedSceneApplier == null)
             cachedSceneApplier = FindFirstObjectByType<SkinApplier>();
-
         if (cachedSceneApplier != null)
             cachedSceneApplier.ApplySkin(skin);
 
-        // Buttonların vizualını (rəng, kilid və s.) yeniləyir
-        for (int i = 0; i < allButtons.Count; i++)
-            allButtons[i].UpdateUI();
+        // Seçilmiş düyməni yeniləyirik
+        selectedButton = sourceButton;
 
-        // --- ƏLAVƏ EDİLƏN HİSSƏ ---
-        UpdateSkinMenuUI(); // Ulduz sayını və Unlocked sayını anlıq yeniləyir
-        UpdateSelectedPreview(); // Yuxarıdakı böyük şəkli yeniləyir
-        // --------------------------
+        for (int i = 0; i < allButtons.Count; i++)
+        {
+            SkinButton btn = allButtons[i];
+            if (btn == null)
+                continue;
+
+            // Digər düymələrdə gözlənilməyən click animasiyasını dayandırırıq
+            if (sourceButton == null || btn != sourceButton)
+                btn.StopClickAnimation();
+
+            // Burada UpdateUI çağırılır, amma animasiyanı idarə etmək üçün parametr göndərə bilərik
+            // və ya UpdateUI içində məntiqi dəyişə bilərik.
+            btn.UpdateUI();
+        }
+
+        UpdateSelectedPreview();
+        UpdateSkinMenuUI();
+    }
+
+    public bool IsButtonSelected(SkinButton btn, SkinData skin)
+    {
+        if (btn == null || skin == null)
+            return false;
+
+        EnsureSelectedButton();
+        return selectedButton == btn;
+    }
+
+    private void EnsureSelectedButton()
+    {
+        if (selectedButton != null)
+            return;
+
+        string selectedID = PlayerPrefs.GetString("SelectedSkin", "");
+        for (int i = 0; i < allButtons.Count; i++)
+        {
+            SkinButton btn = allButtons[i];
+            if (btn != null && btn.skin != null && btn.skin.skinID == selectedID)
+            {
+                selectedButton = btn;
+                break;
+            }
+        }
+    }
+
+    private SkinButton FindFirstButtonForSkin(SkinData skin)
+    {
+        if (skin == null)
+            return null;
+
+        for (int i = 0; i < allButtons.Count; i++)
+        {
+            SkinButton btn = allButtons[i];
+            if (btn != null && btn.skin == skin)
+                return btn;
+        }
+
+        return null;
     }
 
     public void OpenSkins()
@@ -193,8 +249,7 @@ public class SkinsManager : MonoBehaviour
         Vector3 startS = open ? Vector3.one * 0.86f : Vector3.one;
         Vector3 endS = open ? Vector3.one : Vector3.one * 0.86f;
 
-        Vector3 currentTargetPos =
-            targetObject != null ? targetObject.transform.position : Vector3.zero;
+        Vector3 currentTargetPos = targetObject != null ? targetObject.transform.position : Vector3.zero;
         Vector3 targetEndPos = open ? originalPosition + Vector3.up * jumpHeight : originalPosition;
 
         while (t < animDuration)
@@ -207,11 +262,7 @@ public class SkinsManager : MonoBehaviour
             skinsPanel.transform.localScale = Vector3.Lerp(startS, endS, p);
 
             if (targetObject != null)
-                targetObject.transform.position = Vector3.Lerp(
-                    currentTargetPos,
-                    targetEndPos,
-                    curve
-                );
+                targetObject.transform.position = Vector3.Lerp(currentTargetPos, targetEndPos, curve);
 
             yield return null;
         }
@@ -302,11 +353,11 @@ public class SkinsManager : MonoBehaviour
             selectedSkinGlow.SetActive(true);
             selectedSkinGlow.transform.DOKill();
             selectedSkinGlow.transform.localScale = Vector3.one;
-            selectedSkinGlow
-                .transform.DOScale(1.08f, 0.8f)
+            selectedSkinGlow.transform.DOScale(1.08f, 0.8f)
                 .SetEase(Ease.InOutSine)
                 .SetLoops(-1, LoopType.Yoyo)
-                .SetUpdate(true);
+                .SetUpdate(true)
+                .SetLink(selectedSkinGlow, LinkBehaviour.KillOnDestroy);
         }
     }
 
@@ -318,10 +369,7 @@ public class SkinsManager : MonoBehaviour
         if (unlockedCountText != null)
             unlockedCountText.SetText("{0}/{1}", unlocked, total);
 
-        int stars =
-            StarManager.Instance != null
-                ? StarManager.Instance.GetStars()
-                : PlayerPrefs.GetInt("Stars", 0);
+        int stars = StarManager.Instance != null ? StarManager.Instance.GetStars() : PlayerPrefs.GetInt("Stars", 0);
         if (starCountText != null)
             starCountText.SetText("{0}", stars);
 
@@ -361,8 +409,7 @@ public class SkinsManager : MonoBehaviour
         PlayerPrefs.SetInt(chosenKey, 1);
         PlayerPrefs.Save();
 
-        CompleteSelection(chosen);
-        UpdateSkinMenuUI();
+        CompleteSelection(chosen, FindFirstButtonForSkin(chosen));
     }
 
     private int GetLockedSkinCount()

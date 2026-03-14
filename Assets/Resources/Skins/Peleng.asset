@@ -10,13 +10,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e1e266c9a9d025b4795517277d23fbfb, type: 3}
-  m_Name: Bear
+  m_Name: Peleng
   m_EditorClassIdentifier: 
-  skinID: Bear
-  sprite: {fileID: -8381012075192673081, guid: 60235a331bc79224aaae754727151ab8, type: 3}
+  skinID: Peleng
+  sprite: {fileID: 2390183288698463355, guid: c08569a6a56ab9240a3d34dd3845dfee, type: 3}
   menuScale: {x: 1, y: 1, z: 1}
   menuYOffset: 0.233
   gameScale: {x: 1, y: 1, z: 1}
-  gameYOffset: 0.292
+  gameYOffset: 0.213
   price: 0
-  unlockedByDefault: 1
+  unlockedByDefault: 0
