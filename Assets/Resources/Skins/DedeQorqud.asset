@@ -10,13 +10,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e1e266c9a9d025b4795517277d23fbfb, type: 3}
-  m_Name: Kukla
+  m_Name: DedeQorqud
   m_EditorClassIdentifier: 
-  skinID: kukla
-  sprite: {fileID: 21300000, guid: e98399181d3cb6f4992555b508bad223, type: 3}
+  skinID: DedeQorqud
+  sprite: {fileID: 847155378850889214, guid: ea945da9ffab87340b4b190b1a05e84a, type: 3}
   menuScale: {x: 1, y: 1, z: 1}
-  menuYOffset: 0.31
+  menuYOffset: 0.301
   gameScale: {x: 1, y: 1, z: 1}
-  gameYOffset: 0.31
+  gameYOffset: 0.324
   price: 0
   unlockedByDefault: 0
